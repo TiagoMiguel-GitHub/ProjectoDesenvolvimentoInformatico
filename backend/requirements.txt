@@ -10,7 +10,6 @@ passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 python-multipart==0.0.20
 cloudinary==1.41.0
-redis==5.2.1
 exponent-server-sdk==2.1.0
 slowapi==0.1.9
 httpx==0.28.1

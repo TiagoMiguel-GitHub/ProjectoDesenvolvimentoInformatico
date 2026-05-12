@@ -1,7 +1,16 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 
-const BASE_URL = "http://192.168.56.1:8000";
+const getBaseUrl = () => {
+  if (__DEV__) {
+    const host = Constants.expoConfig?.hostUri?.split(":")[0] ?? "localhost";
+    return `http://${host}:8000`;
+  }
+  return "http://localhost:8000";
+};
+
+const BASE_URL = getBaseUrl();
 
 export const api = axios.create({ baseURL: BASE_URL });
 

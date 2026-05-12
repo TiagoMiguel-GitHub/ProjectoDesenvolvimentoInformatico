@@ -1,16 +1,14 @@
 # AgroWood — Iniciar a Aplicação
 
-## 1. Base de dados (Docker)
+## Pré-requisitos (instalar uma vez)
 
-Abrir um terminal na pasta raiz do projeto e correr:
-
-```powershell
-docker compose up -d
-```
+- [Python 3.10+](https://www.python.org/downloads/)
+- [Node.js](https://nodejs.org/)
+- [Expo Go](https://expo.dev/client) no telemóvel
 
 ---
 
-## 2. Backend (API)
+## 1. Backend (API)
 
 Abrir um terminal na pasta `backend/`:
 
@@ -24,7 +22,7 @@ API disponível em `http://localhost:8000`
 
 ---
 
-## 3. Painel Admin
+## 2. Painel Admin
 
 Abrir um **novo** terminal na pasta `apps/admin/`:
 
@@ -38,7 +36,7 @@ Login: `admin@agrowood.pt` / `changeme`
 
 ---
 
-## 4. App Mobile
+## 3. App Mobile
 
 Abrir um **novo** terminal na pasta `apps/mobile/`:
 
@@ -52,28 +50,8 @@ O telemóvel e o computador têm de estar na **mesma rede Wi-Fi**.
 
 ---
 
-## Alterar o IP local
+## Notas
 
-Necessário quando mudas de rede Wi-Fi ou o IP do computador muda.
-
-**Verificar o IP atual:**
-
-```powershell
-ipconfig | Select-String "IPv4"
-```
-
-Usar o primeiro IP da lista (ex: `192.168.1.74`).
-
-**Alterar em dois ficheiros:**
-
-1. `backend/.env` — linha `PUBLIC_BASE_URL`:
-   ```
-   PUBLIC_BASE_URL=http://192.168.1.74:8000
-   ```
-
-2. `apps/mobile/src/api/client.ts` — variável `BASE_URL`:
-   ```ts
-   const BASE_URL = "http://192.168.1.74:8000";
-   ```
-
-Depois de alterar, reiniciar o backend e o Expo.
+- A base de dados está no **Supabase** (online) — não precisas de Docker.
+- O IP é detetado automaticamente pelo Expo — não precisas de o alterar manualmente.
+- Se mudares de rede Wi-Fi, corre `npm start` novamente.

@@ -1,0 +1,12 @@
+{
+  "name": "agrowood",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "concurrently -n backend,mobile -c blue,green \"npm run start:backend\" \"npm run start:mobile\"",
+    "start:backend": "cd backend && .venv\\Scripts\\python -m uvicorn app.main:app --reload --host 0.0.0.0",
+    "start:mobile": "cd apps/mobile && npx expo start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

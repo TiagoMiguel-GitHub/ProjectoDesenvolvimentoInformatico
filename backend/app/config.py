@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     DATABASE_URL: str = "postgresql+asyncpg://agrowood:password@localhost:5432/agrowood_db"
-    REDIS_URL: str = "redis://localhost:6379/0"
 
     CLOUDINARY_CLOUD_NAME: str = ""
     CLOUDINARY_API_KEY: str = ""

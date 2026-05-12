@@ -22,7 +22,7 @@ async def main():
         )
         db.add(admin)
         await db.commit()
-        print(f"✓ Admin created: {settings.FIRST_ADMIN_EMAIL} / {settings.FIRST_ADMIN_PASSWORD}")
+        print(f"Admin created: {settings.FIRST_ADMIN_EMAIL} / {settings.FIRST_ADMIN_PASSWORD}")
 
 
 asyncio.run(main())
