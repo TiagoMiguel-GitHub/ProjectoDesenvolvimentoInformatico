@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { useCart } from "../../context/CartContext";
 import { Product } from "../../types";
 
@@ -7,6 +7,8 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const product: Product = route.params.product;
   const { addItem } = useCart();
   const [qty, setQty] = useState(product.min_order_quantity);
+  const { width } = useWindowDimensions();
+  const imageHeight = Math.round(width * 0.65);
 
   function handleAdd() {
     if (qty < product.min_order_quantity) {
@@ -22,9 +24,9 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   return (
     <ScrollView style={styles.container}>
       {product.image_url ? (
-        <Image source={{ uri: product.image_url }} style={styles.image} />
+        <Image source={{ uri: product.image_url }} style={[styles.image, { height: imageHeight }]} />
       ) : (
-        <View style={[styles.image, styles.imagePlaceholder]}>
+        <View style={[styles.image, styles.imagePlaceholder, { height: imageHeight }]}>
           <Text style={{ fontSize: 64 }}>{product.category.slug === "madeira" ? "🪵" : "🍎"}</Text>
         </View>
       )}

@@ -3,7 +3,7 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native
 import { useCart } from "../../context/CartContext";
 
 export default function CartScreen({ navigation }: any) {
-  const { items, updateQuantity, removeItem, total, clear } = useCart();
+  const { items, updateQuantity, removeItem, total } = useCart();
 
   if (items.length === 0) {
     return (
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   name: { fontWeight: "600", color: "#333", marginBottom: 4, fontSize: 14 },
   price: { color: "#2d6a4f", fontWeight: "700", fontSize: 16, marginBottom: 6 },
   qtyRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  qBtn: { width: 28, height: 28, backgroundColor: "#e8f5e9", borderRadius: 6, alignItems: "center", justifyContent: "center" },
+  qBtn: { width: 36, height: 36, backgroundColor: "#e8f5e9", borderRadius: 6, alignItems: "center", justifyContent: "center" },
   qBtnText: { fontSize: 18, color: "#2d6a4f", fontWeight: "700" },
   qty: { fontSize: 14, fontWeight: "600", color: "#333" },
   del: { padding: 8 },

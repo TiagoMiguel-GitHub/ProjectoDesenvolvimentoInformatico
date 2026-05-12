@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 
 interface Slot {
@@ -147,7 +147,7 @@ export default function SchedulePage() {
 
       {showForm && (
         <div style={s.overlay}>
-          <div style={s.modal}>
+          <div className="modal-box" style={s.modal}>
             <h2 style={{ marginBottom: 16, color: "#2d6a4f" }}>Novo horário</h2>
 
             {/* Mode toggle */}
@@ -241,8 +241,8 @@ const s: Record<string, any> = {
   slotTime: { fontWeight: 600, color: "#333", minWidth: 110 },
   slotCapacity: { flex: 1, color: "#555", fontSize: 14 },
   deleteBtn: { background: "#fee2e2", color: "#ef4444", border: "none", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 13 },
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 },
-  modal: { background: "#fff", borderRadius: 16, padding: 32, width: 480, display: "flex", flexDirection: "column", gap: 10, maxHeight: "90vh", overflowY: "auto" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 },
+  modal: { background: "#fff", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column", gap: 10 },
   label: { fontSize: 13, fontWeight: 600, color: "#555" },
   input: { padding: "10px 14px", border: "1px solid #ccc", borderRadius: 8, fontSize: 14 },
   modeToggle: { display: "flex", gap: 0, marginBottom: 4, border: "1px solid #ccc", borderRadius: 8, overflow: "hidden" },

@@ -38,7 +38,7 @@ export default function SimulatorAdminPage() {
 
       {showForm && (
         <div style={s.overlay}>
-          <div style={s.modal}>
+          <div className="modal-box-sm" style={s.modal}>
             <h2 style={{ color: "#2d6a4f", marginBottom: 16 }}>Novo tipo de madeira</h2>
             <input style={s.input} placeholder="Tipo (ex: Eucalipto)" value={form.wood_type} onChange={(e) => setForm({ ...form, wood_type: e.target.value })} />
             <input style={s.input} type="number" placeholder="Preço por unidade (€)" value={form.price_per_unit} onChange={(e) => setForm({ ...form, price_per_unit: e.target.value })} />
@@ -67,8 +67,8 @@ const s: Record<string, React.CSSProperties> = {
   cardPrice: { fontSize: 20, fontWeight: 700, color: "#2d6a4f", marginBottom: 8 },
   cardDesc: { color: "#888", fontSize: 13, marginBottom: 8 },
   cardMeta: { color: "#555", fontSize: 13 },
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 },
-  modal: { background: "#fff", borderRadius: 16, padding: 32, width: 440, display: "flex", flexDirection: "column", gap: 10 },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 },
+  modal: { background: "#fff", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column", gap: 10 },
   input: { padding: "10px 14px", border: "1px solid #ccc", borderRadius: 8, fontSize: 14 },
   cancelBtn: { background: "#f3f4f6", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer" },
 };

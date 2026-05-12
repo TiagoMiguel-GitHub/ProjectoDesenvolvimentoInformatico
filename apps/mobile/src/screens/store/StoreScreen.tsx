@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { productsApi } from "../../api/products";
 import { Category, Product } from "../../types";
 
 export default function StoreScreen({ navigation }: any) {
+  const { width } = useWindowDimensions();
+  const numColumns = width >= 600 ? 3 : 2;
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -53,7 +55,8 @@ export default function StoreScreen({ navigation }: any) {
         <FlatList
           data={products}
           keyExtractor={(p) => p.id}
-          numColumns={2}
+          numColumns={numColumns}
+          key={numColumns}
           columnWrapperStyle={{ gap: 12 }}
           contentContainerStyle={{ padding: 12, gap: 12 }}
           renderItem={({ item }) => (

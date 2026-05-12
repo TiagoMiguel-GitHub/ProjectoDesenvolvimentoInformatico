@@ -41,8 +41,8 @@ export default function LoginPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0faf4" },
-  card: { background: "#fff", padding: 40, borderRadius: 16, width: 360, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" },
+  page: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0faf4", padding: 16 },
+  card: { background: "#fff", padding: "clamp(24px, 5vw, 40px)", borderRadius: 16, width: "100%", maxWidth: 400, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" },
   logo: { textAlign: "center", fontSize: 36, marginBottom: 4 },
   title: { textAlign: "center", color: "#2d6a4f", marginBottom: 28, fontWeight: 700, fontSize: 18 },
   form: { display: "flex", flexDirection: "column", gap: 12 },
