@@ -27,41 +27,6 @@ agrowood/
 └── package.json      # Inicia os dois projetos em simultâneo
 ```
 
----
-
-## Configuração inicial
-
-### 1. Supabase
-
-1. Cria um projeto em [supabase.com](https://supabase.com)
-2. Vai a **SQL Editor** e corre o ficheiro `supabase_migration.sql`
-3. Vai a **Authentication → Users** e cria o utilizador admin (ex: `admin@agrowood.pt`)
-4. Corre no SQL Editor para torná-lo admin:
-   ```sql
-   UPDATE profiles SET role = 'admin'
-   WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@agrowood.pt');
-   ```
-
-### 2. Chaves de acesso
-
-Vai a **Settings → API** e copia a **Project URL** e a **Anon/Publishable key**.
-
-Coloca os valores em dois ficheiros:
-
-**`apps/admin/src/lib/supabase.ts`**
-```ts
-const SUPABASE_URL = "https://o-teu-projeto.supabase.co";
-const SUPABASE_ANON_KEY = "a-tua-chave";
-```
-
-**`apps/mobile/src/lib/supabase.ts`**
-```ts
-const SUPABASE_URL = "https://o-teu-projeto.supabase.co";
-const SUPABASE_ANON_KEY = "a-tua-chave";
-```
-
----
-
 ## Iniciar o projeto
 
 ### Pré-requisitos
