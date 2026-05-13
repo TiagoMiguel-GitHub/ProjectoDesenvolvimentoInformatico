@@ -8,6 +8,7 @@ import OrdersPage from "./pages/orders/OrdersPage";
 import ZonesPage from "./pages/zones/ZonesPage";
 import SimulatorAdminPage from "./pages/simulator/SimulatorAdminPage";
 import SchedulePage from "./pages/schedule/SchedulePage";
+import UsersPage from "./pages/users/UsersPage";
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
@@ -22,6 +23,7 @@ function ProtectedRoutes() {
         <Route path="/zones" element={<ZonesPage />} />
         <Route path="/simulator" element={<SimulatorAdminPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
+        <Route path="/users" element={<UsersPage />} />
       </Routes>
     </Layout>
   );

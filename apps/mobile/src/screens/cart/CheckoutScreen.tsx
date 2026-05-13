@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { api } from "../../api/client";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { authApi } from "../../api/auth";
 import { ordersApi } from "../../api/orders";
-import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { Address, TimeSlot } from "../../types";
 
@@ -13,7 +13,6 @@ const PAYMENT_OPTIONS = [
 ];
 
 export default function CheckoutScreen({ navigation }: any) {
-  const { user } = useAuth();
   const { items, total, clear } = useCart();
 
   const [fulfillment, setFulfillment] = useState<"delivery" | "pickup">("delivery");
@@ -26,13 +25,13 @@ export default function CheckoutScreen({ navigation }: any) {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api.get("/auth/me/addresses").then(({ data }) => {
-      setAddresses(data);
-      const def = data.find((a: Address) => a.is_default) ?? data[0] ?? null;
+  useFocusEffect(useCallback(() => {
+    authApi.listAddresses().then(({ data }) => {
+      setAddresses(data ?? []);
+      const def = (data ?? []).find((a: Address) => a.is_default) ?? (data ?? [])[0] ?? null;
       setSelectedAddress(def);
     });
-  }, []);
+  }, []));
 
   useEffect(() => {
     const today = new Date();
@@ -68,12 +67,7 @@ export default function CheckoutScreen({ navigation }: any) {
       clear();
       navigation.replace("OrderDetail", { orderId: order.id });
     } catch (e: any) {
-      const detail = e?.response?.data?.detail;
-      const msg = Array.isArray(detail)
-        ? detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")
-        : detail || e?.message || "Não foi possível criar a encomenda";
-      console.error("Order error:", JSON.stringify(e?.response?.data));
-      Alert.alert("Erro", msg);
+      Alert.alert("Erro", e?.message || "Não foi possível criar a encomenda");
     } finally {
       setLoading(false);
     }
@@ -81,7 +75,6 @@ export default function CheckoutScreen({ navigation }: any) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, gap: 16 }}>
-      {/* Fulfillment type */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tipo de entrega</Text>
         <View style={styles.toggle}>
@@ -95,7 +88,6 @@ export default function CheckoutScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Address (delivery only) */}
       {fulfillment === "delivery" && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Morada de entrega</Text>
@@ -105,13 +97,16 @@ export default function CheckoutScreen({ navigation }: any) {
               <Text style={styles.addrSub}>{addr.street}, {addr.city} {addr.postal_code}</Text>
             </Pressable>
           ))}
-          {!addresses.length && <Text style={styles.hint}>Adicione uma morada no seu perfil</Text>}
+          {!addresses.length && (
+            <Pressable onPress={() => navigation.navigate("Addresses")}>
+              <Text style={styles.addAddressLink}>+ Adicionar morada</Text>
+            </Pressable>
+          )}
           {deliveryCost > 0 && <Text style={styles.deliveryCost}>Custo de entrega: €{deliveryCost.toFixed(2)}</Text>}
           {deliveryCost === 0 && selectedAddress && <Text style={styles.freeDelivery}>🎉 Entrega gratuita!</Text>}
         </View>
       )}
 
-      {/* Time slot */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Horário</Text>
         {slots.filter((s) => s.is_available).length === 0 && (
@@ -125,7 +120,6 @@ export default function CheckoutScreen({ navigation }: any) {
         ))}
       </View>
 
-      {/* Payment */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Método de pagamento</Text>
         {PAYMENT_OPTIONS.map((opt) => (
@@ -135,13 +129,11 @@ export default function CheckoutScreen({ navigation }: any) {
         ))}
       </View>
 
-      {/* Notes */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notas (opcional)</Text>
         <TextInput style={styles.notesInput} placeholder="Ex: deixar no portão..." multiline value={notes} onChangeText={setNotes} />
       </View>
 
-      {/* Summary */}
       <View style={styles.summary}>
         <View style={styles.summRow}><Text>Subtotal</Text><Text>€{total.toFixed(2)}</Text></View>
         <View style={styles.summRow}><Text>Entrega</Text><Text>€{deliveryCost.toFixed(2)}</Text></View>
@@ -188,4 +180,5 @@ const styles = StyleSheet.create({
   totalValue: { fontWeight: "700", fontSize: 20, color: "#2d6a4f" },
   orderBtn: { backgroundColor: "#2d6a4f", borderRadius: 12, padding: 16, alignItems: "center", marginBottom: 32 },
   orderBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  addAddressLink: { color: "#2d6a4f", fontWeight: "700", fontSize: 14, textDecorationLine: "underline" },
 });

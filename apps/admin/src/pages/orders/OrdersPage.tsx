@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../../api/client";
+import { supabase } from "../../lib/supabase";
 
 const STATUS_OPTIONS = ["pending", "confirmed", "preparing", "out_for_delivery", "completed", "cancelled"];
 const STATUS_LABELS: Record<string, string> = { pending: "Pendente", confirmed: "Confirmada", preparing: "Em preparação", out_for_delivery: "Em entrega", completed: "Concluída", cancelled: "Cancelada" };
@@ -14,14 +14,20 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
 
   async function load() {
-    const params = filter ? { status: filter } : {};
-    api.get("/orders", { params }).then(({ data }) => setOrders(data)).finally(() => setLoading(false));
+    let query = supabase.from("orders").select("*, customer:profiles(full_name), address:addresses(*), items:order_items(*, product:products(*))").order("created_at", { ascending: false });
+    if (filter) query = query.eq("status", filter);
+    const { data } = await query;
+    setOrders(data ?? []);
+    setLoading(false);
   }
   useEffect(() => { load(); }, [filter]);
 
   async function updateStatus() {
     if (!newStatus || !selected) return;
-    await api.patch(`/orders/${selected.id}/status`, { status: newStatus, note: note || undefined });
+    await supabase.from("orders").update({ status: newStatus }).eq("id", selected.id);
+    if (note) {
+      await supabase.from("order_status_history").insert({ order_id: selected.id, status: newStatus, note });
+    }
     setSelected(null);
     setNote("");
     load();
@@ -42,14 +48,14 @@ export default function OrdersPage() {
 
       <div className="table-scroll" style={s.tableWrap}>
         <div style={s.table}>
-          <div style={s.thead}><span>ID</span><span>Tipo</span><span>Pagamento</span><span>Total</span><span>Estado</span><span>Data</span><span></span></div>
+          <div style={s.thead}><span>ID</span><span>Cliente</span><span>Tipo</span><span>Total</span><span>Estado</span><span>Data</span><span></span></div>
           {orders.map((o) => {
             const c = STATUS_COLORS[o.status] ?? "#999";
             return (
               <div key={o.id} style={s.trow}>
                 <span style={{ fontFamily: "monospace", fontSize: 12 }}>#{o.id.slice(0, 8).toUpperCase()}</span>
+                <span style={{ fontWeight: 600, color: "#333" }}>{o.customer?.full_name ?? "—"}</span>
                 <span style={{ whiteSpace: "nowrap" }}>{o.fulfillment_type === "delivery" ? "🚚 Entrega" : "🏪 Levant."}</span>
-                <span style={{ fontSize: 13 }}>{o.payment_method}</span>
                 <span style={{ fontWeight: 700, color: "#2d6a4f", whiteSpace: "nowrap" }}>€{Number(o.total).toFixed(2)}</span>
                 <span style={{ background: c + "22", color: c, padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{STATUS_LABELS[o.status]}</span>
                 <span style={{ fontSize: 13, color: "#888", whiteSpace: "nowrap" }}>{new Date(o.created_at).toLocaleDateString("pt-PT")}</span>
@@ -63,12 +69,15 @@ export default function OrdersPage() {
       {selected && (
         <div style={s.overlay}>
           <div className="modal-box" style={s.modal}>
-            <h2 style={{ color: "#2d6a4f", marginBottom: 16 }}>Encomenda #{selected.id.slice(0, 8).toUpperCase()}</h2>
+            <h2 style={{ color: "#2d6a4f", marginBottom: 4 }}>Encomenda #{selected.id.slice(0, 8).toUpperCase()}</h2>
+            {selected.customer?.full_name && (
+              <p style={{ color: "#555", fontSize: 14, marginBottom: 16 }}>👤 {selected.customer.full_name}</p>
+            )}
 
             <div style={{ marginBottom: 16 }}>
-              {selected.items.map((item: any) => (
+              {selected.items?.map((item: any) => (
                 <div key={item.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
-                  <span>{item.product.name} × {item.quantity} {item.product.unit}</span>
+                  <span>{item.product?.name} × {item.quantity} {item.product?.unit}</span>
                   <span style={{ whiteSpace: "nowrap" }}>€{Number(item.total_price).toFixed(2)}</span>
                 </div>
               ))}
@@ -105,8 +114,8 @@ const s: Record<string, React.CSSProperties> = {
   filterActive: { background: "#2d6a4f", color: "#fff", border: "1px solid #2d6a4f" },
   tableWrap: { borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" },
   table: { background: "#fff", borderRadius: 12, overflow: "hidden", minWidth: 700 },
-  thead: { display: "grid", gridTemplateColumns: "130px 1fr 130px 100px 140px 100px 140px", gap: 12, padding: "12px 16px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 13 },
-  trow: { display: "grid", gridTemplateColumns: "130px 1fr 130px 100px 140px 100px 140px", gap: 12, padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 14, alignItems: "center" },
+  thead: { display: "grid", gridTemplateColumns: "120px 1fr 110px 100px 140px 100px 140px", gap: 12, padding: "12px 16px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 13 },
+  trow: { display: "grid", gridTemplateColumns: "120px 1fr 110px 100px 140px 100px 140px", gap: 12, padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 14, alignItems: "center" },
   viewBtn: { background: "#2d6a4f", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" },
   overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 },
   modal: { background: "#fff", borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", gap: 8 },

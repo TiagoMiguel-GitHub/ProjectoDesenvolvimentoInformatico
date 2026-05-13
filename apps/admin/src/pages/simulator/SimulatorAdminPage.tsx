@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../../api/client";
+import { supabase } from "../../lib/supabase";
 
 export default function SimulatorAdminPage() {
   const [configs, setConfigs] = useState<any[]>([]);
@@ -7,12 +7,20 @@ export default function SimulatorAdminPage() {
   const [form, setForm] = useState({ wood_type: "", price_per_unit: "", unit: "m3", transport_cost_per_km: "0", min_transport_cost: "0", description: "" });
 
   async function load() {
-    api.get("/simulator/configs").then(({ data }) => setConfigs(data));
+    const { data } = await supabase.from("simulator_configs").select("*").order("wood_type");
+    setConfigs(data ?? []);
   }
   useEffect(() => { load(); }, []);
 
   async function save() {
-    await api.post("/simulator/configs", { ...form, price_per_unit: Number(form.price_per_unit), transport_cost_per_km: Number(form.transport_cost_per_km), min_transport_cost: Number(form.min_transport_cost) });
+    await supabase.from("simulator_configs").insert({
+      wood_type: form.wood_type,
+      price_per_unit: Number(form.price_per_unit),
+      unit: form.unit,
+      transport_cost_per_km: Number(form.transport_cost_per_km),
+      min_transport_cost: Number(form.min_transport_cost),
+      description: form.description || null,
+    });
     setShowForm(false);
     load();
   }

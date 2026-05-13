@@ -14,8 +14,9 @@ export default function SimulatorScreen() {
 
   useEffect(() => {
     simulatorApi.configs().then(({ data }) => {
-      setConfigs(data);
-      if (data.length > 0) setSelectedType(data[0].wood_type);
+      const configs = data ?? [];
+      setConfigs(configs);
+      if (configs.length > 0) setSelectedType(configs[0].wood_type);
     });
   }, []);
 
@@ -31,7 +32,7 @@ export default function SimulatorScreen() {
       });
       setResult(data);
     } catch (e: any) {
-      Alert.alert("Erro", e?.response?.data?.detail || "Erro no cálculo");
+      Alert.alert("Erro", e?.message || "Erro no cálculo");
     } finally {
       setLoading(false);
     }

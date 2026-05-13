@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { ordersApi } from "../../api/orders";
 import { Order } from "../../types";
@@ -16,12 +16,17 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function OrdersScreen({ navigation }: any) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      ordersApi.myOrders().then(({ data }) => setOrders(data)).finally(() => setLoading(false));
-    }, [])
-  );
+  async function load(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    const { data } = await ordersApi.myOrders();
+    setOrders(data);
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useFocusEffect(useCallback(() => { load(); }, []));
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#2d6a4f" size="large" />;
 
@@ -39,6 +44,7 @@ export default function OrdersScreen({ navigation }: any) {
       data={orders}
       keyExtractor={(o) => o.id}
       contentContainerStyle={{ padding: 12, gap: 12 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} colors={["#2d6a4f"]} tintColor="#2d6a4f" />}
       renderItem={({ item }) => {
         const st = STATUS_LABELS[item.status] ?? { label: item.status, color: "#999" };
         return (
@@ -50,7 +56,7 @@ export default function OrdersScreen({ navigation }: any) {
               </View>
             </View>
             <Text style={styles.date}>{new Date(item.created_at).toLocaleDateString("pt-PT")}</Text>
-            <Text style={styles.items}>{item.items.length} produto(s)</Text>
+            <Text style={styles.items}>{item.items?.length ?? 0} produto(s)</Text>
             <Text style={styles.total}>€{Number(item.total).toFixed(2)}</Text>
           </Pressable>
         );

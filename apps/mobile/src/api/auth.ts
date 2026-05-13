@@ -1,23 +1,50 @@
-import { api } from "./client";
+import { supabase } from "../lib/supabase";
 import { Address, User } from "../types";
 
+async function getUserId(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) throw new Error("Não autenticado");
+  return session.user.id;
+}
+
 export const authApi = {
-  register: (data: { full_name: string; email: string; phone?: string; password: string }) =>
-    api.post<{ access_token: string; refresh_token: string }>("/auth/register", data),
+  me: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) throw new Error("Não autenticado");
+    const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+    return { data: { ...data, email: session.user.email } as User };
+  },
 
-  login: (email: string, password: string) =>
-    api.post<{ access_token: string; refresh_token: string }>("/auth/login", { email, password }),
+  updateMe: async (payload: { full_name?: string; phone?: string }) => {
+    const userId = await getUserId();
+    const { data } = await supabase.from("profiles").update(payload).eq("id", userId).select().single();
+    return { data: data as User };
+  },
 
-  me: () => api.get<User>("/auth/me"),
+  updatePushToken: async (expo_push_token: string) => {
+    const userId = await getUserId();
+    return supabase.from("profiles").update({ expo_push_token }).eq("id", userId);
+  },
 
-  updateMe: (data: { full_name?: string; phone?: string }) => api.patch<User>("/auth/me", data),
+  listAddresses: async () => {
+    const userId = await getUserId();
+    const { data } = await supabase.from("addresses").select("*").eq("user_id", userId).order("is_default", { ascending: false });
+    return { data: (data ?? []) as Address[] };
+  },
 
-  updatePushToken: (expo_push_token: string) =>
-    api.post("/auth/me/push-token", { expo_push_token }),
+  addAddress: async (address: Omit<Address, "id">) => {
+    const userId = await getUserId();
+    const { data } = await supabase.from("addresses").insert({ ...address, user_id: userId }).select().single();
+    return { data: data as Address };
+  },
 
-  listAddresses: () => api.get<Address[]>("/auth/me/addresses"),
+  deleteAddress: (id: string) =>
+    supabase.from("addresses").delete().eq("id", id),
 
-  addAddress: (data: Omit<Address, "id">) => api.post<Address>("/auth/me/addresses", data),
-
-  deleteAddress: (id: string) => api.delete(`/auth/me/addresses/${id}`),
+  setDefaultAddress: async (id: string) => {
+    const userId = await getUserId();
+    // remove a predefinida anterior antes de definir a nova
+    await supabase.from("addresses").update({ is_default: false }).eq("user_id", userId);
+    return supabase.from("addresses").update({ is_default: true }).eq("id", id);
+  },
 };

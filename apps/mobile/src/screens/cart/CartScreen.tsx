@@ -1,9 +1,20 @@
 import React from "react";
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function CartScreen({ navigation }: any) {
   const { items, updateQuantity, removeItem, total } = useCart();
+  const { user } = useAuth();
+
+  function handleCheckout() {
+    // carrinho é visível sem conta, mas para finalizar é obrigatório ter sessão
+    if (!user) {
+      navigation.navigate("Login", { returnTo: "Checkout" });
+    } else {
+      navigation.navigate("Checkout");
+    }
+  }
 
   if (items.length === 0) {
     return (
@@ -45,7 +56,13 @@ export default function CartScreen({ navigation }: any) {
                 </Pressable>
               </View>
             </View>
-            <Pressable onPress={() => removeItem(item.product.id)} style={styles.del}>
+            <Pressable
+              onPress={() => Alert.alert("Remover", `Remover ${item.product.name} do carrinho?`, [
+                { text: "Cancelar" },
+                { text: "Remover", style: "destructive", onPress: () => removeItem(item.product.id) },
+              ])}
+              style={styles.del}
+            >
               <Text style={{ fontSize: 20 }}>🗑️</Text>
             </Pressable>
           </View>
@@ -57,7 +74,7 @@ export default function CartScreen({ navigation }: any) {
           <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.total}>€{total.toFixed(2)}</Text>
         </View>
-        <Pressable style={styles.checkoutBtn} onPress={() => navigation.navigate("Checkout")}>
+        <Pressable style={styles.checkoutBtn} onPress={handleCheckout}>
           <Text style={styles.checkoutBtnText}>Finalizar Encomenda</Text>
         </Pressable>
       </View>

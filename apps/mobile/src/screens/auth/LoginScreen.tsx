@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 
-export default function LoginScreen({ navigation }: any) {
+export default function LoginScreen({ navigation, route }: any) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,6 +13,8 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
+      const returnTo = route.params?.returnTo;
+      navigation.replace(returnTo ?? "Main");
     } catch {
       Alert.alert("Erro", "Email ou password incorretos");
     } finally {
@@ -35,6 +37,9 @@ export default function LoginScreen({ navigation }: any) {
       <Pressable onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>Não tem conta? Registe-se</Text>
       </Pressable>
+      <Pressable onPress={() => navigation.navigate("ForgotPassword")} style={{ marginTop: 12 }}>
+        <Text style={styles.forgotLink}>Esqueceu a password?</Text>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 }
@@ -47,4 +52,5 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#2d6a4f", borderRadius: 10, padding: 16, alignItems: "center", marginBottom: 16 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   link: { textAlign: "center", color: "#2d6a4f", fontSize: 15 },
+  forgotLink: { textAlign: "center", color: "#888", fontSize: 14 },
 });

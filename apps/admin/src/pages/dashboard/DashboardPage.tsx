@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../../api/client";
+import { supabase } from "../../lib/supabase";
 
 interface Stats { total: number; pending: number; confirmed: number; preparing: number; out_for_delivery: number; completed: number; }
 
@@ -8,7 +8,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/orders").then(({ data }) => setOrders(data)).finally(() => setLoading(false));
+    supabase.from("orders").select("*, profiles(full_name)").order("created_at", { ascending: false })
+      .then(({ data }) => { setOrders(data ?? []); setLoading(false); });
   }, []);
 
   const stats: Stats = {
@@ -44,7 +45,7 @@ export default function DashboardPage() {
           {orders.slice(0, 10).map((o) => (
             <div key={o.id} style={s.tableRow}>
               <span style={{ fontFamily: "monospace" }}>#{o.id.slice(0, 8).toUpperCase()}</span>
-              <span>{o.user_id?.slice(0, 8)}</span>
+              <span>{o.profiles?.full_name ?? "—"}</span>
               <span>€{Number(o.total).toFixed(2)}</span>
               <StatusBadge status={o.status} />
               <span>{new Date(o.created_at).toLocaleDateString("pt-PT")}</span>

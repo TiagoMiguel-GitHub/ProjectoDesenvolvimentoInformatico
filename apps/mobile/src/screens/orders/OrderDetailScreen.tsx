@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { ordersApi } from "../../api/orders";
 import { Order } from "../../types";
@@ -18,30 +18,47 @@ export default function OrderDetailScreen({ route }: any) {
   const { orderId } = route.params;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      ordersApi.myOrder(orderId).then(({ data }) => setOrder(data)).finally(() => setLoading(false));
-    }, [orderId])
-  );
+  async function load(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    const { data } = await ordersApi.myOrder(orderId);
+    setOrder(data);
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useFocusEffect(useCallback(() => { load(); }, [orderId]));
 
   if (loading || !order) return <ActivityIndicator style={{ flex: 1 }} color="#2d6a4f" size="large" />;
 
   const currentStep = STEPS.indexOf(order.status);
+  const isCancelled = order.status === "cancelled";
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, gap: 16 }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} colors={["#2d6a4f"]} tintColor="#2d6a4f" />}
+    >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Estado da encomenda</Text>
-        <View style={styles.steps}>
-          {STEPS.map((step, i) => (
-            <View key={step} style={styles.stepRow}>
-              <View style={[styles.dot, i <= currentStep && styles.dotActive, order.status === "cancelled" && styles.dotCancelled]} />
-              {i < STEPS.length - 1 && <View style={[styles.line, i < currentStep && styles.lineActive]} />}
-              <Text style={[styles.stepLabel, i <= currentStep && styles.stepLabelActive]}>{STEP_LABELS[step]}</Text>
-            </View>
-          ))}
-        </View>
+
+        {isCancelled ? (
+          <View style={styles.cancelledBadge}>
+            <Text style={styles.cancelledText}>❌  Encomenda cancelada</Text>
+          </View>
+        ) : (
+          <View style={styles.steps}>
+            {STEPS.map((step, i) => (
+              <View key={step} style={styles.stepRow}>
+                <View style={[styles.dot, i <= currentStep && styles.dotActive]} />
+                {i < STEPS.length - 1 && <View style={[styles.line, i < currentStep && styles.lineActive]} />}
+                <Text style={[styles.stepLabel, i <= currentStep && styles.stepLabelActive]}>{STEP_LABELS[step]}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -124,4 +141,6 @@ const styles = StyleSheet.create({
   histStatus: { fontWeight: "600", color: "#333" },
   histDate: { color: "#888", fontSize: 12 },
   histNote: { color: "#555", fontSize: 13, marginTop: 2 },
+  cancelledBadge: { backgroundColor: "#fee2e2", borderRadius: 10, padding: 14, alignItems: "center" },
+  cancelledText: { color: "#dc2626", fontWeight: "700", fontSize: 15 },
 });

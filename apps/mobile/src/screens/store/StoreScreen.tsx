@@ -1,41 +1,50 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { productsApi } from "../../api/products";
 import { Category, Product } from "../../types";
 
 export default function StoreScreen({ navigation }: any) {
   const { width } = useWindowDimensions();
+  const { top } = useSafeAreaInsets();
   const numColumns = width >= 600 ? 3 : 2;
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    productsApi.categories().then(({ data }) => setCategories(data));
+    productsApi.categories().then(({ data }) => setCategories(data ?? []));
   }, []);
+
+  // espera 300ms após o utilizador parar de escrever antes de pesquisar
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await productsApi.list({
         category_id: selectedCategory ?? undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         in_stock: true,
       });
-      setProducts(data);
+      setProducts(data ?? []);
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, search]);
+  }, [selectedCategory, debouncedSearch]);
 
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: top }]}>
       <TextInput style={styles.search} placeholder="🔍  Pesquisar..." value={search} onChangeText={setSearch} />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cats}>

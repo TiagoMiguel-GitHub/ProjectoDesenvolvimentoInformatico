@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../../api/client";
+import { supabase } from "../../lib/supabase";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -13,14 +13,18 @@ export default function ProductsPage() {
   const [showCatForm, setShowCatForm] = useState(false);
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
   const [catError, setCatError] = useState("");
+
   function toSlug(text: string) {
     return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
 
   async function load() {
-    const [p, c] = await Promise.all([api.get("/products"), api.get("/products/categories")]);
-    setProducts(p.data);
-    setCategories(c.data);
+    const [{ data: p }, { data: c }] = await Promise.all([
+      supabase.from("products").select("*, category:categories(*)").order("name"),
+      supabase.from("categories").select("*").order("name"),
+    ]);
+    setProducts(p ?? []);
+    setCategories(c ?? []);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
@@ -42,12 +46,17 @@ export default function ProductsPage() {
     const slug = form.slug || toSlug(form.name);
     const body = { ...form, slug, description: form.description || null, price_per_unit: Number(form.price_per_unit), stock_quantity: Number(form.stock_quantity), min_order_quantity: Number(form.min_order_quantity) };
     try {
-      if (editProduct) await api.patch(`/products/${editProduct.id}`, body);
-      else await api.post("/products", body);
+      if (editProduct) {
+        const { error } = await supabase.from("products").update(body).eq("id", editProduct.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("products").insert(body);
+        if (error) throw error;
+      }
       setShowForm(false);
       load();
     } catch (e: any) {
-      setSaveError(e?.response?.data?.detail?.[0]?.msg || e?.response?.data?.detail || "Erro ao guardar produto");
+      setSaveError(e?.message || "Erro ao guardar produto");
     }
   }
 
@@ -59,25 +68,19 @@ export default function ProductsPage() {
     setCatError("");
     if (!catForm.name) { setCatError("Nome é obrigatório"); return; }
     try {
-      await api.post("/products/categories", { name: catForm.name, slug: catForm.slug || toSlug(catForm.name) });
+      const { error } = await supabase.from("categories").insert({ name: catForm.name, slug: catForm.slug || toSlug(catForm.name) });
+      if (error) throw error;
       setShowCatForm(false);
       setCatForm({ name: "", slug: "" });
       load();
     } catch (e: any) {
-      setCatError(e?.response?.data?.detail || "Erro ao criar categoria");
+      setCatError(e?.message || "Erro ao criar categoria");
     }
   }
 
   async function updateStock(id: string, qty: string) {
-    await api.patch(`/products/${id}/stock`, { stock_quantity: Number(qty) });
+    await supabase.from("products").update({ stock_quantity: Number(qty) }).eq("id", id);
     setStockEdit(null);
-    load();
-  }
-
-  async function uploadImage(id: string, file: File) {
-    const fd = new FormData();
-    fd.append("file", file);
-    await api.post(`/products/${id}/image`, fd);
     load();
   }
 
@@ -113,12 +116,12 @@ export default function ProductsPage() {
                   <div style={{ fontSize: 12, color: "#888" }}>{p.unit}</div>
                 </div>
               </div>
-              <span style={{ whiteSpace: "nowrap" }}>{p.category.name}</span>
+              <span style={{ whiteSpace: "nowrap" }}>{p.category?.name}</span>
               <span style={{ whiteSpace: "nowrap" }}>€{Number(p.price_per_unit).toFixed(2)}</span>
               <div>
                 {stockEdit?.id === p.id ? (
                   <div style={{ display: "flex", gap: 4 }}>
-                    <input style={s.stockInput} type="number" value={stockEdit?.value} onChange={(e) => setStockEdit({ id: p.id, value: e.target.value })} />
+                    <input style={s.stockInput} type="number" value={stockEdit.value} onChange={(e) => setStockEdit({ id: p.id, value: e.target.value })} />
                     <button style={s.saveBtn} onClick={() => updateStock(p.id, stockEdit?.value ?? "0")}>✓</button>
                     <button style={s.cancelBtnSm} onClick={() => setStockEdit(null)}>✕</button>
                   </div>
@@ -129,10 +132,6 @@ export default function ProductsPage() {
               <span style={{ color: p.is_active ? "#22c55e" : "#ef4444", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>{p.is_active ? "Ativo" : "Inativo"}</span>
               <div style={{ display: "flex", gap: 6 }}>
                 <button style={s.editBtn} onClick={() => openEdit(p)}>Editar</button>
-                <label style={s.imgBtn}>
-                  📷
-                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => e.target.files && uploadImage(p.id, e.target.files[0])} />
-                </label>
               </div>
             </div>
           ))}
@@ -191,14 +190,13 @@ const s: Record<string, React.CSSProperties> = {
   catChip: { background: "#e8f5e9", color: "#2d6a4f", padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600 },
   tableWrap: { borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" },
   table: { background: "#fff", borderRadius: 12, overflow: "hidden", minWidth: 640 },
-  thead: { display: "grid", gridTemplateColumns: "2fr 1fr 100px 140px 100px 120px", gap: 12, padding: "12px 16px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 13 },
-  trow: { display: "grid", gridTemplateColumns: "2fr 1fr 100px 140px 100px 120px", gap: 12, padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 14, alignItems: "center" },
+  thead: { display: "grid", gridTemplateColumns: "2fr 1fr 100px 140px 100px 100px", gap: 12, padding: "12px 16px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 13 },
+  trow: { display: "grid", gridTemplateColumns: "2fr 1fr 100px 140px 100px 100px", gap: 12, padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 14, alignItems: "center" },
   stockInput: { width: 70, border: "1px solid #ccc", borderRadius: 6, padding: "4px 8px" },
   saveBtn: { background: "#22c55e", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" },
   cancelBtnSm: { background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" },
   cancelBtn: { background: "#f3f4f6", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 700 },
   editBtn: { background: "#3b82f6", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 13 },
-  imgBtn: { background: "#f3f4f6", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", fontSize: 16 },
   overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 },
   modal: { background: "#fff", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column", gap: 10 },
   input: { padding: "10px 14px", border: "1px solid #ccc", borderRadius: 8, fontSize: 14 },

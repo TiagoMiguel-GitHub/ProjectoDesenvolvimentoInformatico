@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../../api/client";
+import { supabase } from "../../lib/supabase";
 
 interface Slot {
   id: string;
@@ -9,7 +9,6 @@ interface Slot {
   max_orders: number;
   booked_count: number;
   slot_type: string;
-  is_active: boolean;
 }
 
 const emptyForm = {
@@ -49,11 +48,14 @@ export default function SchedulePage() {
   async function load() {
     const today = new Date().toISOString().split("T")[0];
     const future = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const [d, p] = await Promise.all([
-      api.get(`/schedule/slots?from_date=${today}&to_date=${future}&slot_type=delivery`),
-      api.get(`/schedule/slots?from_date=${today}&to_date=${future}&slot_type=pickup`),
-    ]);
-    setSlots([...d.data, ...p.data].sort((a: Slot, b: Slot) => a.slot_date.localeCompare(b.slot_date) || a.start_time.localeCompare(b.start_time)));
+    const { data } = await supabase
+      .from("schedule_slots")
+      .select("*")
+      .gte("slot_date", today)
+      .lte("slot_date", future)
+      .order("slot_date")
+      .order("start_time");
+    setSlots(data ?? []);
     setLoading(false);
   }
 
@@ -72,30 +74,24 @@ export default function SchedulePage() {
   async function save() {
     setError("");
     const dates = previewDates();
-    if (dates.length === 0) {
-      setError(form.mode === "single" ? "Selecione uma data" : "Selecione um intervalo de datas válido");
-      return;
-    }
-    if (!form.start_time || !form.end_time) {
-      setError("Hora de início e hora de fim são obrigatórios");
-      return;
-    }
+    if (dates.length === 0) { setError(form.mode === "single" ? "Selecione uma data" : "Selecione um intervalo válido"); return; }
+    if (!form.start_time || !form.end_time) { setError("Hora de início e fim são obrigatórias"); return; }
     setSaving(true);
     try {
-      await Promise.all(dates.map((d) =>
-        api.post("/schedule/slots", {
-          slot_date: d,
-          start_time: form.start_time + ":00",
-          end_time: form.end_time + ":00",
-          max_orders: Number(form.max_orders),
-          slot_type: form.slot_type,
-        })
-      ));
+      const rows = dates.map((d) => ({
+        slot_date: d,
+        start_time: form.start_time + ":00",
+        end_time: form.end_time + ":00",
+        max_orders: Number(form.max_orders),
+        slot_type: form.slot_type,
+      }));
+      const { error: err } = await supabase.from("schedule_slots").insert(rows);
+      if (err) throw err;
       setShowForm(false);
       setForm(emptyForm);
       load();
     } catch (e: any) {
-      setError(e?.response?.data?.detail || "Erro ao criar horários");
+      setError(e?.message || "Erro ao criar horários");
     } finally {
       setSaving(false);
     }
@@ -103,7 +99,7 @@ export default function SchedulePage() {
 
   async function remove(id: string) {
     if (!confirm("Remover este horário?")) return;
-    await api.delete(`/schedule/slots/${id}`);
+    await supabase.from("schedule_slots").delete().eq("id", id);
     load();
   }
 
@@ -150,7 +146,6 @@ export default function SchedulePage() {
           <div className="modal-box" style={s.modal}>
             <h2 style={{ marginBottom: 16, color: "#2d6a4f" }}>Novo horário</h2>
 
-            {/* Mode toggle */}
             <div style={s.modeToggle}>
               {(["single", "range"] as const).map((m) => (
                 <button key={m} style={{ ...s.modeBtn, ...(form.mode === m ? s.modeBtnActive : {}) }} onClick={() => setField("mode", m)}>

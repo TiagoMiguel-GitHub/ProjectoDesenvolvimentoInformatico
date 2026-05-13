@@ -17,8 +17,13 @@ export default function RegisterScreen({ navigation }: any) {
     setLoading(true);
     try {
       await register({ full_name: form.full_name, email: form.email.trim().toLowerCase(), phone: form.phone || undefined, password: form.password });
+      Alert.alert(
+        "Conta criada!",
+        "Verifique o seu email para confirmar a conta antes de entrar.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
     } catch (e: any) {
-      Alert.alert("Erro", e?.response?.data?.detail || "Erro ao registar");
+      Alert.alert("Erro", e?.message || "Erro ao registar");
     } finally {
       setLoading(false);
     }

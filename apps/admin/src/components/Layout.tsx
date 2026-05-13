@@ -9,6 +9,7 @@ const NAV = [
   { path: "/zones", label: "📍 Zonas de Entrega" },
   { path: "/schedule", label: "📅 Horários" },
   { path: "/simulator", label: "🧮 Simulador" },
+  { path: "/users", label: "👥 Utilizadores" },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

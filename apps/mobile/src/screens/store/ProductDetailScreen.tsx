@@ -57,7 +57,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             value={String(qty)}
             onChangeText={(v) => setQty(Number(v) || product.min_order_quantity)}
           />
-          <Pressable style={styles.qtyBtn} onPress={() => setQty(qty + 1)}>
+          <Pressable style={styles.qtyBtn} onPress={() => setQty(Math.min(qty + 1, Number(product.stock_quantity)))}>
             <Text style={styles.qtyBtnText}>+</Text>
           </Pressable>
         </View>

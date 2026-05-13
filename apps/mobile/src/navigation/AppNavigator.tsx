@@ -10,6 +10,7 @@ import { useCart } from "../context/CartContext";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
+import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 import StoreScreen from "../screens/store/StoreScreen";
 import ProductDetailScreen from "../screens/store/ProductDetailScreen";
 import CartScreen from "../screens/cart/CartScreen";
@@ -40,8 +41,6 @@ function GuestScreen({ navigation, message }: { navigation: any; message: string
 }
 
 function CartTab({ navigation }: any) {
-  const { user } = useAuth();
-  if (!user) return <GuestScreen navigation={navigation} message="Inicia sessão para aceder ao carrinho e fazer encomendas." />;
   return <CartScreen navigation={navigation} />;
 }
 
@@ -53,8 +52,27 @@ function OrdersTab({ navigation }: any) {
 
 function ProfileTab({ navigation }: any) {
   const { user } = useAuth();
-  if (!user) return <GuestScreen navigation={navigation} message="Inicia sessão para gerir a tua conta." />;
+  if (!user) return <GuestProfileScreen navigation={navigation} />;
   return <ProfileScreen navigation={navigation} />;
+}
+
+function GuestProfileScreen({ navigation }: { navigation: any }) {
+  return (
+    <View style={gs.container}>
+      <Text style={gs.icon}>🔒</Text>
+      <Text style={gs.title}>A tua conta</Text>
+      <Pressable style={gs.loginBtn} onPress={() => navigation.navigate("Login")}>
+        <Text style={gs.loginBtnText}>Iniciar sessão</Text>
+      </Pressable>
+      <Pressable style={gs.registerBtn} onPress={() => navigation.navigate("Register")}>
+        <Text style={gs.registerBtnText}>Criar conta grátis</Text>
+      </Pressable>
+      <View style={gs.divider} />
+      <Pressable style={gs.simBtn} onPress={() => navigation.getParent()?.navigate("Simulator")}>
+        <Text style={gs.simBtnText}>🧮  Simulador de Orçamento</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 function StoreTabs() {
@@ -107,6 +125,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Addresses" component={AddressesScreen} options={{ title: "Moradas" }} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Criar Conta" }} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: "Recuperar Password" }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -121,4 +140,7 @@ const gs = StyleSheet.create({
   loginBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   registerBtn: { backgroundColor: "#fff", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40, width: "100%", alignItems: "center", borderWidth: 1, borderColor: "#2d6a4f" },
   registerBtnText: { color: "#2d6a4f", fontWeight: "700", fontSize: 16 },
+  divider: { width: "100%", height: 1, backgroundColor: "#e0e0e0", marginVertical: 24 },
+  simBtn: { backgroundColor: "#f0faf4", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, width: "100%", alignItems: "center", borderWidth: 1, borderColor: "#2d6a4f" },
+  simBtnText: { color: "#2d6a4f", fontWeight: "700", fontSize: 15 },
 });

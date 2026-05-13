@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../../api/client";
+import { supabase } from "../../lib/supabase";
 
 export default function ZonesPage() {
   const [zones, setZones] = useState<any[]>([]);
@@ -8,8 +8,8 @@ export default function ZonesPage() {
   const [error, setError] = useState("");
 
   async function load() {
-    const { data } = await api.get("/delivery-zones");
-    setZones(data);
+    const { data } = await supabase.from("delivery_zones").select("*").order("name");
+    setZones(data ?? []);
   }
   useEffect(() => { load(); }, []);
 
@@ -20,16 +20,18 @@ export default function ZonesPage() {
       return;
     }
     try {
-      await api.post("/delivery-zones", {
-        ...form,
+      const { error: err } = await supabase.from("delivery_zones").insert({
+        name: form.name,
+        postal_codes: form.postal_codes,
         delivery_cost: Number(form.delivery_cost),
         free_delivery_threshold: form.free_delivery_threshold ? Number(form.free_delivery_threshold) : null,
       });
+      if (err) throw err;
       setShowForm(false);
       setForm({ name: "", postal_codes: "", delivery_cost: "", free_delivery_threshold: "" });
       load();
     } catch (e: any) {
-      setError(e?.response?.data?.detail || "Erro ao guardar zona");
+      setError(e?.message || "Erro ao guardar zona");
     }
   }
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
-import { authApi } from "../api/auth";
+import { supabase } from "../lib/supabase";
+import { registerPushToken } from "../lib/notifications";
 import { User } from "../types";
 
 interface AuthContextValue {
@@ -14,52 +14,63 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue>(null!);
 
+async function fetchProfile(userId: string): Promise<User | null> {
+  const { data: session } = await supabase.auth.getSession();
+  const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+  if (!data) return null;
+  return { ...data, email: session.session?.user.email ?? "" };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const token = await SecureStore.getItemAsync("access_token");
-        if (token) {
-          const { data } = await authApi.me();
-          setUser(data);
-        }
-      } catch {
-        await SecureStore.deleteItemAsync("access_token");
-        await SecureStore.deleteItemAsync("refresh_token");
-      } finally {
-        setLoading(false);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        setUser(profile);
       }
-    })();
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        setUser(profile);
+        if (_event === "SIGNED_IN") registerPushToken();
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   async function login(email: string, password: string) {
-    const { data } = await authApi.login(email, password);
-    await SecureStore.setItemAsync("access_token", data.access_token);
-    await SecureStore.setItemAsync("refresh_token", data.refresh_token);
-    const me = await authApi.me();
-    setUser(me.data);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
   }
 
   async function register(payload: { full_name: string; email: string; phone?: string; password: string }) {
-    const { data } = await authApi.register(payload);
-    await SecureStore.setItemAsync("access_token", data.access_token);
-    await SecureStore.setItemAsync("refresh_token", data.refresh_token);
-    const me = await authApi.me();
-    setUser(me.data);
+    const { error } = await supabase.auth.signUp({
+      email: payload.email,
+      password: payload.password,
+      options: { data: { full_name: payload.full_name, phone: payload.phone ?? "" } },
+    });
+    if (error) throw new Error(error.message);
   }
 
   async function logout() {
-    await SecureStore.deleteItemAsync("access_token");
-    await SecureStore.deleteItemAsync("refresh_token");
-    setUser(null);
+    await supabase.auth.signOut();
   }
 
   async function refreshUser() {
-    const { data } = await authApi.me();
-    setUser(data);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const profile = await fetchProfile(session.user.id);
+      setUser(profile);
+    }
   }
 
   return (
