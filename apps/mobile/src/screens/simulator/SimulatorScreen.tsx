@@ -8,7 +8,7 @@ export default function SimulatorScreen() {
   const [selectedType, setSelectedType] = useState<string>("");
   const [quantity, setQuantity] = useState("1");
   const [includeTransport, setIncludeTransport] = useState(false);
-  const [distance, setDistance] = useState("0");
+  const [distance, setDistance] = useState("");
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
