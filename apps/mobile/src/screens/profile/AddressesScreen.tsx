@@ -3,6 +3,11 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useFocusEffect } from "@react-navigation/native";
 import { authApi } from "../../api/auth";
 
+function formatPostalCode(text: string): string {
+  const digits = text.replace(/\D/g, "").slice(0, 7);
+  return digits.length > 4 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : digits;
+}
+
 interface Address {
   id: string;
   label: string | null;
@@ -29,6 +34,10 @@ export default function AddressesScreen() {
     setError("");
     if (!form.street || !form.city || !form.postal_code) {
       setError("Rua, cidade e código postal são obrigatórios");
+      return;
+    }
+    if (!/^\d{4}-\d{3}$/.test(form.postal_code)) {
+      setError("Código postal inválido (ex: 3030-112)");
       return;
     }
     try {
@@ -81,7 +90,7 @@ export default function AddressesScreen() {
           <TextInput style={styles.input} placeholder="Etiqueta (ex: Casa, Escritório)" value={form.label} onChangeText={(v) => setForm((f) => ({ ...f, label: v }))} />
           <TextInput style={styles.input} placeholder="Rua e número *" value={form.street} onChangeText={(v) => setForm((f) => ({ ...f, street: v }))} />
           <TextInput style={styles.input} placeholder="Cidade *" value={form.city} onChangeText={(v) => setForm((f) => ({ ...f, city: v }))} />
-          <TextInput style={styles.input} placeholder="Código postal *" value={form.postal_code} onChangeText={(v) => setForm((f) => ({ ...f, postal_code: v }))} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Código postal * (ex: 3030-112)" value={form.postal_code} onChangeText={(v) => setForm((f) => ({ ...f, postal_code: formatPostalCode(v) }))} keyboardType="number-pad" maxLength={8} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Pressable style={styles.saveBtn} onPress={save}><Text style={styles.saveBtnText}>Guardar</Text></Pressable>

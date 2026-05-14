@@ -27,6 +27,16 @@ export default function UsersPage() {
     load();
   }
 
+  async function deleteUser(user: any) {
+    if (!confirm(`Apagar o utilizador "${user.full_name || user.email}"?\nEsta ação é irreversível.`)) return;
+    const { error } = await supabase.rpc("delete_user_by_admin", { target_user_id: user.id });
+    if (error) {
+      alert(`Erro ao apagar utilizador: ${error.message}`);
+      return;
+    }
+    load();
+  }
+
   const filtered = users.filter((u) =>
     u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -91,7 +101,7 @@ export default function UsersPage() {
               <span style={{ fontSize: 13, color: "#888", whiteSpace: "nowrap" }}>
                 {new Date(u.created_at).toLocaleDateString("pt-PT")}
               </span>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 4 }}>
                 <button style={s.roleBtn} onClick={() => toggleRole(u)}>
                   {u.role === "admin" ? "→ Cliente" : "→ Admin"}
                 </button>
@@ -100,6 +110,9 @@ export default function UsersPage() {
                   onClick={() => toggleActive(u)}
                 >
                   {u.is_active ? "Desativar" : "Ativar"}
+                </button>
+                <button style={s.deleteBtn} onClick={() => deleteUser(u)}>
+                  Apagar
                 </button>
               </div>
             </div>
@@ -117,9 +130,10 @@ const s: Record<string, React.CSSProperties> = {
   stat: { background: "#e8f5e9", color: "#2d6a4f", padding: "4px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600 },
   search: { width: "100%", padding: "10px 14px", border: "1px solid #ccc", borderRadius: 8, fontSize: 14, marginBottom: 16, boxSizing: "border-box" },
   tableWrap: { borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" },
-  table: { background: "#fff", borderRadius: 12, overflow: "hidden", minWidth: 860 },
-  thead: { display: "grid", gridTemplateColumns: "1.5fr 2fr 130px 100px 90px 110px 200px", gap: 12, padding: "12px 16px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 13 },
-  trow: { display: "grid", gridTemplateColumns: "1.5fr 2fr 130px 100px 90px 110px 200px", gap: 12, padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 14, alignItems: "center" },
-  roleBtn: { background: "#e8f0fe", color: "#1a56db", border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" },
-  activeBtn: { border: "none", padding: "5px 10px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" },
+  table: { background: "#fff", borderRadius: 12, overflow: "hidden" },
+  thead: { display: "grid", gridTemplateColumns: "1.5fr 2fr 110px 85px 75px 95px 230px", gap: 8, padding: "10px 12px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 12 },
+  trow: { display: "grid", gridTemplateColumns: "1.5fr 2fr 110px 85px 75px 95px 230px", gap: 8, padding: "10px 12px", borderTop: "1px solid #f0f0f0", fontSize: 13, alignItems: "center" },
+  roleBtn: { background: "#e8f0fe", color: "#1a56db", border: "none", padding: "4px 7px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" },
+  activeBtn: { border: "none", padding: "4px 7px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" },
+  deleteBtn: { background: "#fee2e2", color: "#dc2626", border: "none", padding: "4px 7px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" },
 };

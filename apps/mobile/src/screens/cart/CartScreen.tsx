@@ -1,11 +1,13 @@
 import React from "react";
 import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 
 export default function CartScreen({ navigation }: any) {
   const { items, updateQuantity, removeItem, total } = useCart();
   const { user } = useAuth();
+  const { top } = useSafeAreaInsets();
 
   function handleCheckout() {
     // carrinho é visível sem conta, mas para finalizar é obrigatório ter sessão
@@ -18,7 +20,7 @@ export default function CartScreen({ navigation }: any) {
 
   if (items.length === 0) {
     return (
-      <View style={styles.empty}>
+      <View style={[styles.empty, { paddingTop: top }]}>
         <Text style={styles.emptyIcon}>🛒</Text>
         <Text style={styles.emptyText}>O seu carrinho está vazio</Text>
         <Pressable style={styles.shopBtn} onPress={() => navigation.navigate("StoreTab")}>
@@ -29,7 +31,7 @@ export default function CartScreen({ navigation }: any) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: top }]}>
       <FlatList
         data={items}
         keyExtractor={(i) => i.product.id}

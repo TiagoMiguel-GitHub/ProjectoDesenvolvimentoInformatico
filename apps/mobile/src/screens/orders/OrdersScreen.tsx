@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { ordersApi } from "../../api/orders";
 import { Order } from "../../types";
@@ -14,6 +15,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export default function OrdersScreen({ navigation }: any) {
+  const { top } = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +34,7 @@ export default function OrdersScreen({ navigation }: any) {
 
   if (orders.length === 0) {
     return (
-      <View style={styles.empty}>
+      <View style={[styles.empty, { paddingTop: top }]}>
         <Text style={styles.emptyIcon}>📦</Text>
         <Text style={styles.emptyText}>Ainda não tem encomendas</Text>
       </View>
@@ -43,7 +45,7 @@ export default function OrdersScreen({ navigation }: any) {
     <FlatList
       data={orders}
       keyExtractor={(o) => o.id}
-      contentContainerStyle={{ padding: 12, gap: 12 }}
+      contentContainerStyle={{ padding: 12, paddingTop: top + 12, gap: 12 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} colors={["#2d6a4f"]} tintColor="#2d6a4f" />}
       renderItem={({ item }) => {
         const st = STATUS_LABELS[item.status] ?? { label: item.status, color: "#999" };

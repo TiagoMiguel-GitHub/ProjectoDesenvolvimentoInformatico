@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../api/auth";
 
 export default function ProfileScreen({ navigation }: any) {
+  const { top } = useSafeAreaInsets();
   const { user, logout, refreshUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.full_name ?? "");
@@ -37,7 +39,7 @@ export default function ProfileScreen({ navigation }: any) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, gap: 16 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: top + 20, gap: 16 }}>
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user?.full_name?.charAt(0)?.toUpperCase()}</Text>
