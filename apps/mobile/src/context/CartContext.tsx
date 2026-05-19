@@ -28,9 +28,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   function addItem(product: Product, quantity: number) {
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
+      const newQty = existing
+        ? Math.min(existing.quantity + quantity, product.stock_quantity)
+        : Math.min(quantity, product.stock_quantity);
       const next = existing
-        ? prev.map((i) => i.product.id === product.id ? { ...i, quantity: i.quantity + quantity } : i)
-        : [...prev, { product, quantity }];
+        ? prev.map((i) => i.product.id === product.id ? { ...i, quantity: newQty } : i)
+        : [...prev, { product, quantity: newQty }];
       AsyncStorage.setItem(CART_KEY, JSON.stringify(next));
       return next;
     });
@@ -38,9 +41,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   function updateQuantity(productId: string, quantity: number) {
     setItems((prev) => {
-      const next = quantity <= 0
+      const item = prev.find((i) => i.product.id === productId);
+      const capped = item ? Math.min(quantity, item.product.stock_quantity) : quantity;
+      const next = capped <= 0
         ? prev.filter((i) => i.product.id !== productId)
-        : prev.map((i) => i.product.id === productId ? { ...i, quantity } : i);
+        : prev.map((i) => i.product.id === productId ? { ...i, quantity: capped } : i);
       AsyncStorage.setItem(CART_KEY, JSON.stringify(next));
       return next;
     });

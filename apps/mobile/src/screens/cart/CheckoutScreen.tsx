@@ -12,6 +12,41 @@ const PAYMENT_OPTIONS = [
   { key: "multibanco", label: "🏧 Multibanco" },
 ];
 
+const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const DAYS_PT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function localDateStr(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function isSlotExpired(slot: TimeSlot): boolean {
+  const now = new Date();
+  const today = localDateStr(now);
+  if (slot.slot_date < today) return true;
+  if (slot.slot_date > today) return false;
+  // Hoje: exige 2 horas de antecedência
+  const [h, m] = slot.start_time.split(":").map(Number);
+  return h * 60 + m <= now.getHours() * 60 + now.getMinutes() + 120;
+}
+
+function formatSlotDate(dateStr: string): string {
+  const today = localDateStr();
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = localDateStr(tomorrowDate);
+
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const weekday = new Date(year, month - 1, day).getDay();
+  const label = `${day} ${MONTHS_PT[month - 1]}`;
+
+  if (dateStr === today) return `Hoje · ${label}`;
+  if (dateStr === tomorrow) return `Amanhã · ${label}`;
+  return `${DAYS_PT[weekday]} · ${label}`;
+}
+
 export default function CheckoutScreen({ navigation }: any) {
   const { items, total, clear } = useCart();
 
@@ -34,11 +69,11 @@ export default function CheckoutScreen({ navigation }: any) {
   }, []));
 
   useEffect(() => {
+    setSelectedSlot(null);
     const today = new Date();
-    const nextWeek = new Date(today);
+    const nextWeek = new Date();
     nextWeek.setDate(today.getDate() + 7);
-    const fmt = (d: Date) => d.toISOString().split("T")[0];
-    ordersApi.slots(fmt(today), fmt(nextWeek), fulfillment).then(({ data }) => setSlots(data));
+    ordersApi.slots(localDateStr(today), localDateStr(nextWeek), fulfillment).then(({ data }) => setSlots(data));
   }, [fulfillment]);
 
   useEffect(() => {
@@ -51,9 +86,20 @@ export default function CheckoutScreen({ navigation }: any) {
     }
   }, [fulfillment, selectedAddress, total]);
 
+  const availableSlots = slots.filter((s) => s.is_available && !isSlotExpired(s));
+  const slotsByDate = availableSlots.reduce<Record<string, TimeSlot[]>>((acc, s) => {
+    (acc[s.slot_date] ??= []).push(s);
+    return acc;
+  }, {});
+  const sortedDates = Object.keys(slotsByDate).sort();
+
   async function placeOrder() {
     if (fulfillment === "delivery" && !selectedAddress) return Alert.alert("Erro", "Selecione uma morada de entrega");
     if (!selectedSlot) return Alert.alert("Erro", "Selecione um horário");
+    if (isSlotExpired(selectedSlot)) {
+      setSelectedSlot(null);
+      return Alert.alert("Horário expirado", "O horário selecionado já não está disponível. Por favor escolha outro.");
+    }
     setLoading(true);
     try {
       const { data: order } = await ordersApi.create({
@@ -99,7 +145,7 @@ export default function CheckoutScreen({ navigation }: any) {
             </Pressable>
           ))}
           {!addresses.length && (
-            <Pressable onPress={() => navigation.navigate("Addresses")}>
+            <Pressable onPress={() => navigation.navigate("Addresses" as never)}>
               <Text style={styles.addAddressLink}>+ Adicionar morada</Text>
             </Pressable>
           )}
@@ -110,15 +156,24 @@ export default function CheckoutScreen({ navigation }: any) {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Horário</Text>
-        {slots.filter((s) => s.is_available).length === 0 && (
+        {sortedDates.length === 0 ? (
           <Text style={styles.hint}>Sem horários disponíveis esta semana</Text>
+        ) : (
+          sortedDates.map((date) => (
+            <View key={date}>
+              <Text style={styles.slotDateHeader}>{formatSlotDate(date)}</Text>
+              {slotsByDate[date].map((slot) => (
+                <Pressable
+                  key={slot.id}
+                  style={[styles.slotRow, selectedSlot?.id === slot.id && styles.slotSelected]}
+                  onPress={() => setSelectedSlot(slot)}
+                >
+                  <Text style={styles.slotTime}>{slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ))
         )}
-        {slots.filter((s) => s.is_available).map((slot) => (
-          <Pressable key={slot.id} style={[styles.slotRow, selectedSlot?.id === slot.id && styles.slotSelected]} onPress={() => setSelectedSlot(slot)}>
-            <Text style={styles.slotDate}>{slot.slot_date}</Text>
-            <Text style={styles.slotTime}>{slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}</Text>
-          </Pressable>
-        ))}
       </View>
 
       <View style={styles.section}>
@@ -168,10 +223,10 @@ const styles = StyleSheet.create({
   hint: { color: "#999", fontSize: 13 },
   deliveryCost: { color: "#e07b39", fontWeight: "600", marginTop: 8 },
   freeDelivery: { color: "#2d6a4f", fontWeight: "600", marginTop: 8 },
-  slotRow: { padding: 12, borderWidth: 1, borderColor: "#ccc", borderRadius: 10, marginBottom: 8, flexDirection: "row", justifyContent: "space-between" },
+  slotDateHeader: { fontWeight: "700", color: "#555", fontSize: 13, marginTop: 8, marginBottom: 6 },
+  slotRow: { padding: 12, borderWidth: 1, borderColor: "#ccc", borderRadius: 10, marginBottom: 8 },
   slotSelected: { borderColor: "#2d6a4f", backgroundColor: "#f0faf4" },
-  slotDate: { fontWeight: "600", color: "#333" },
-  slotTime: { color: "#2d6a4f", fontWeight: "600" },
+  slotTime: { color: "#2d6a4f", fontWeight: "600", fontSize: 15 },
   payRow: { padding: 12, borderWidth: 1, borderColor: "#ccc", borderRadius: 10, marginBottom: 8 },
   paySelected: { borderColor: "#2d6a4f", backgroundColor: "#f0faf4" },
   payText: { fontWeight: "600", color: "#333" },

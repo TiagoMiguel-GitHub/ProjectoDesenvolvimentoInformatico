@@ -121,7 +121,7 @@ export default function ProductsPage() {
               <div>
                 {stockEdit?.id === p.id ? (
                   <div style={{ display: "flex", gap: 4 }}>
-                    <input style={s.stockInput} type="number" value={stockEdit.value} onChange={(e) => setStockEdit({ id: p.id, value: e.target.value })} />
+                    <input style={s.stockInput} type="number" value={stockEdit?.value} onChange={(e) => setStockEdit({ id: p.id, value: e.target.value })} />
                     <button style={s.saveBtn} onClick={() => updateStock(p.id, stockEdit?.value ?? "0")}>✓</button>
                     <button style={s.cancelBtnSm} onClick={() => setStockEdit(null)}>✕</button>
                   </div>
@@ -139,11 +139,11 @@ export default function ProductsPage() {
       </div>
 
       {showCatForm && (
-        <div style={s.overlay}>
-          <div className="modal-box-sm" style={s.modal}>
+        <div style={s.overlay} onClick={() => setShowCatForm(false)}>
+          <div className="modal-box-sm" style={s.modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginBottom: 20, color: "#2d6a4f" }}>Nova categoria</h2>
-            <input style={s.input} placeholder="Nome (ex: Fruta, Madeira) *" value={catForm.name} onChange={(e) => setCatField("name", e.target.value)} />
-            <input style={s.input} placeholder="Slug (gerado automaticamente)" value={catForm.slug} onChange={(e) => setCatField("slug", e.target.value)} />
+            <label style={s.label}>Nome *<input style={s.input} placeholder="ex: Fruta, Madeira" value={catForm.name} onChange={(e) => setCatField("name", e.target.value)} /></label>
+            <label style={s.label}>Slug<input style={s.input} placeholder="gerado automaticamente" value={catForm.slug} onChange={(e) => setCatField("slug", e.target.value)} /></label>
             {catError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>{catError}</p>}
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               <button style={s.addBtn} onClick={saveCategory}>Criar</button>
@@ -154,21 +154,24 @@ export default function ProductsPage() {
       )}
 
       {showForm && (
-        <div style={s.overlay}>
-          <div className="modal-box" style={s.modal}>
+        <div style={s.overlay} onClick={() => setShowForm(false)}>
+          <div className="modal-box" style={s.modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginBottom: 20, color: "#2d6a4f" }}>{editProduct ? "Editar produto" : "Novo produto"}</h2>
-            <input style={s.input} placeholder="Nome *" value={form.name} onChange={(e) => setField("name", e.target.value)} />
-            <input style={s.input} placeholder="Slug (gerado automaticamente)" value={form.slug} onChange={(e) => setField("slug", e.target.value)} />
-            <input style={s.input} placeholder="Descrição" value={form.description} onChange={(e) => setField("description", e.target.value)} />
-            <select style={s.input} value={form.category_id} onChange={(e) => setField("category_id", e.target.value)}>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <select style={s.input} value={form.unit} onChange={(e) => setField("unit", e.target.value)}>
-              {["kg", "unidade", "m3", "m2", "litro"].map((u) => <option key={u} value={u}>{u}</option>)}
-            </select>
-            <input style={s.input} type="number" placeholder="Preço por unidade (€) *" value={form.price_per_unit} onChange={(e) => setField("price_per_unit", e.target.value)} />
-            <input style={s.input} type="number" placeholder="Stock disponível" value={form.stock_quantity} onChange={(e) => setField("stock_quantity", e.target.value)} />
-            <input style={s.input} type="number" placeholder="Quantidade mínima de encomenda" value={form.min_order_quantity} onChange={(e) => setField("min_order_quantity", e.target.value)} />
+            <label style={s.label}>Nome *<input style={s.input} placeholder="ex: Batata, Lenha de Carvalho" value={form.name} onChange={(e) => setField("name", e.target.value)} /></label>
+            <label style={s.label}>Descrição<input style={s.input} placeholder="Descrição opcional do produto" value={form.description} onChange={(e) => setField("description", e.target.value)} /></label>
+            <label style={s.label}>Categoria
+              <select style={s.input} value={form.category_id} onChange={(e) => setField("category_id", e.target.value)}>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <label style={s.label}>Unidade
+              <select style={s.input} value={form.unit} onChange={(e) => setField("unit", e.target.value)}>
+                {["kg", "unidade", "m3", "m2", "litro"].map((u) => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </label>
+            <label style={s.label}>Preço por unidade (€) *<input style={s.input} type="number" placeholder="0.00" value={form.price_per_unit} onChange={(e) => setField("price_per_unit", e.target.value)} /></label>
+            <label style={s.label}>Stock disponível<input style={s.input} type="number" placeholder="0" value={form.stock_quantity} onChange={(e) => setField("stock_quantity", e.target.value)} /></label>
+            <label style={s.label}>Quantidade mínima de encomenda<input style={s.input} type="number" placeholder="1" value={form.min_order_quantity} onChange={(e) => setField("min_order_quantity", e.target.value)} /></label>
             {saveError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>{saveError}</p>}
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               <button style={s.addBtn} onClick={save}>Guardar</button>
@@ -198,6 +201,7 @@ const s: Record<string, React.CSSProperties> = {
   cancelBtn: { background: "#f3f4f6", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 700 },
   editBtn: { background: "#3b82f6", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 13 },
   overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 },
-  modal: { background: "#fff", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column", gap: 10 },
-  input: { padding: "10px 14px", border: "1px solid #ccc", borderRadius: 8, fontSize: 14 },
+  modal: { background: "#fff", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column", gap: 10, maxHeight: "90vh", overflowY: "auto" },
+  label: { display: "flex", flexDirection: "column", gap: 4, fontSize: 13, fontWeight: 600, color: "#555" },
+  input: { padding: "10px 14px", border: "1px solid #ccc", borderRadius: 8, fontSize: 14, fontWeight: 400 },
 };

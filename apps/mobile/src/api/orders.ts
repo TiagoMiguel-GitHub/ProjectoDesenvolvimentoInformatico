@@ -38,7 +38,7 @@ export const ordersApi = {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Não autenticado");
 
-    // preços sempre do servidor para evitar manipulação no cliente
+    // subtotal calculado com preços do servidor apenas para determinar custo de entrega
     const productIds = payload.items.map((i) => i.product_id);
     const { data: products } = await supabase.from("products").select("id, price_per_unit").in("id", productIds);
     if (!products) throw new Error("Produtos não encontrados");
@@ -55,36 +55,20 @@ export const ordersApi = {
       }
     }
 
-    const { data: order, error } = await supabase.from("orders").insert({
-      user_id: session.user.id,
-      address_id: payload.address_id ?? null,
-      time_slot_id: payload.time_slot_id ?? null,
-      fulfillment_type: payload.fulfillment_type,
-      payment_method: payload.payment_method,
-      subtotal,
-      delivery_cost: deliveryCost,
-      total: subtotal + deliveryCost,
-      notes: payload.notes ?? null,
-    }).select().single();
+    // RPC atómica: bloqueia linhas (FOR UPDATE), valida stock, cria encomenda,
+    // insere itens, decrementa stock e actualiza slot — tudo numa transacção.
+    const { data: order, error } = await supabase.rpc("create_order", {
+      p_user_id: session.user.id,
+      p_address_id: payload.address_id ?? null,
+      p_time_slot_id: payload.time_slot_id ?? null,
+      p_fulfillment_type: payload.fulfillment_type,
+      p_payment_method: payload.payment_method,
+      p_delivery_cost: deliveryCost,
+      p_notes: payload.notes ?? null,
+      p_items: payload.items,
+    });
 
-    if (error || !order) throw new Error(error?.message ?? "Erro ao criar encomenda");
-
-    await supabase.from("order_items").insert(
-      payload.items.map((i) => ({
-        order_id: order.id,
-        product_id: i.product_id,
-        quantity: i.quantity,
-        unit_price: priceMap[i.product_id],
-        total_price: priceMap[i.product_id] * i.quantity,
-      }))
-    );
-
-    if (payload.time_slot_id) {
-      const { data: slot } = await supabase.from("schedule_slots").select("booked_count").eq("id", payload.time_slot_id).single();
-      if (slot) {
-        await supabase.from("schedule_slots").update({ booked_count: slot.booked_count + 1 }).eq("id", payload.time_slot_id);
-      }
-    }
+    if (error) throw new Error(error.message);
 
     return { data: order as Order };
   },

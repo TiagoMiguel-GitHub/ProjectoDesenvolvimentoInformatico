@@ -3,6 +3,7 @@ import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from "react
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import { getProductEmoji } from "../../lib/productEmoji";
 
 export default function CartScreen({ navigation }: any) {
   const { items, updateQuantity, removeItem, total } = useCart();
@@ -42,7 +43,7 @@ export default function CartScreen({ navigation }: any) {
               <Image source={{ uri: item.product.image_url }} style={styles.img} />
             ) : (
               <View style={[styles.img, styles.imgPlaceholder]}>
-                <Text style={{ fontSize: 28 }}>{item.product.category.slug === "madeira" ? "🪵" : "🍎"}</Text>
+                <Text style={{ fontSize: 28 }}>{getProductEmoji(item.product.name, item.product.category.slug)}</Text>
               </View>
             )}
             <View style={styles.info}>
@@ -53,10 +54,17 @@ export default function CartScreen({ navigation }: any) {
                   <Text style={styles.qBtnText}>−</Text>
                 </Pressable>
                 <Text style={styles.qty}>{item.quantity} {item.product.unit}</Text>
-                <Pressable onPress={() => updateQuantity(item.product.id, item.quantity + 1)} style={styles.qBtn}>
-                  <Text style={styles.qBtnText}>+</Text>
+                <Pressable
+                  onPress={() => updateQuantity(item.product.id, item.quantity + 1)}
+                  style={[styles.qBtn, item.quantity >= item.product.stock_quantity && styles.qBtnDisabled]}
+                  disabled={item.quantity >= item.product.stock_quantity}
+                >
+                  <Text style={[styles.qBtnText, item.quantity >= item.product.stock_quantity && styles.qBtnTextDisabled]}>+</Text>
                 </Pressable>
               </View>
+              {item.quantity >= item.product.stock_quantity && (
+                <Text style={styles.stockWarning}>Stock máximo atingido ({item.product.stock_quantity} {item.product.unit})</Text>
+              )}
             </View>
             <Pressable
               onPress={() => Alert.alert("Remover", `Remover ${item.product.name} do carrinho?`, [
@@ -99,8 +107,11 @@ const styles = StyleSheet.create({
   price: { color: "#2d6a4f", fontWeight: "700", fontSize: 16, marginBottom: 6 },
   qtyRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   qBtn: { width: 36, height: 36, backgroundColor: "#e8f5e9", borderRadius: 6, alignItems: "center", justifyContent: "center" },
+  qBtnDisabled: { backgroundColor: "#f0f0f0" },
   qBtnText: { fontSize: 18, color: "#2d6a4f", fontWeight: "700" },
+  qBtnTextDisabled: { color: "#bbb" },
   qty: { fontSize: 14, fontWeight: "600", color: "#333" },
+  stockWarning: { fontSize: 11, color: "#e53935", marginTop: 3 },
   del: { padding: 8 },
   footer: { backgroundColor: "#fff", padding: 20, borderTopWidth: 1, borderTopColor: "#eee" },
   totalRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14 },

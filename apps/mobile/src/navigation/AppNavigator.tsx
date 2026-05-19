@@ -68,7 +68,7 @@ function GuestProfileScreen({ navigation }: { navigation: any }) {
         <Text style={gs.registerBtnText}>Criar conta grátis</Text>
       </Pressable>
       <View style={gs.divider} />
-      <Pressable style={gs.simBtn} onPress={() => navigation.getParent()?.navigate("Simulator")}>
+      <Pressable style={gs.simBtn} onPress={() => navigation.navigate("Simulator" as never)}>
         <Text style={gs.simBtnText}>🧮  Simulador de Orçamento</Text>
       </Pressable>
     </View>

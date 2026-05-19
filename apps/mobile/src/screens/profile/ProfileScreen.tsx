@@ -85,8 +85,8 @@ export default function ProfileScreen({ navigation }: any) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Conta</Text>
         <MenuItem icon="📦" label="As minhas encomendas" onPress={() => navigation.navigate("OrdersTab" as never)} />
-        <MenuItem icon="📍" label="Moradas guardadas" onPress={() => navigation.getParent()?.navigate("Addresses")} />
-        <MenuItem icon="🧮" label="Simulador de Orçamento" onPress={() => navigation.getParent()?.navigate("Simulator")} />
+        <MenuItem icon="📍" label="Moradas guardadas" onPress={() => navigation.navigate("Addresses" as never)} />
+        <MenuItem icon="🧮" label="Simulador de Orçamento" onPress={() => navigation.navigate("Simulator" as never)} />
       </View>
 
       <Pressable style={styles.logoutBtn} onPress={handleLogout}>

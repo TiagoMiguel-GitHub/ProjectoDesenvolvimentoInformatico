@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { productsApi } from "../../api/products";
+import { getProductEmoji } from "../../lib/productEmoji";
 import { Category, Product } from "../../types";
 
 export default function StoreScreen({ navigation }: any) {
@@ -74,7 +75,7 @@ export default function StoreScreen({ navigation }: any) {
                 <Image source={{ uri: item.image_url }} style={styles.cardImg} />
               ) : (
                 <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
-                  <Text style={{ fontSize: 32 }}>{item.category.slug === "madeira" ? "🪵" : "🍎"}</Text>
+                  <Text style={{ fontSize: 32 }}>{getProductEmoji(item.name, item.category.slug)}</Text>
                 </View>
               )}
               <View style={styles.cardBody}>

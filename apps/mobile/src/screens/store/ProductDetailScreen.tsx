@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { useCart } from "../../context/CartContext";
+import { getProductEmoji } from "../../lib/productEmoji";
 import { Product } from "../../types";
 
 export default function ProductDetailScreen({ route, navigation }: any) {
@@ -10,9 +11,17 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const { width } = useWindowDimensions();
   const imageHeight = Math.round(width * 0.65);
 
+  const stock = Number(product.stock_quantity);
+  const overStock = qty > stock;
+  const underMin = qty < product.min_order_quantity;
+  const canAdd = !overStock && !underMin;
+
   function handleAdd() {
-    if (qty < product.min_order_quantity) {
+    if (underMin) {
       return Alert.alert("Quantidade mínima", `Mínimo: ${product.min_order_quantity} ${product.unit}`);
+    }
+    if (overStock) {
+      return Alert.alert("Stock insuficiente", `Apenas ${stock} ${product.unit} disponíveis.`);
     }
     addItem(product, qty);
     Alert.alert("Adicionado!", `${product.name} foi adicionado ao carrinho.`, [
@@ -27,7 +36,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
         <Image source={{ uri: product.image_url }} style={[styles.image, { height: imageHeight }]} />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder, { height: imageHeight }]}>
-          <Text style={{ fontSize: 64 }}>{product.category.slug === "madeira" ? "🪵" : "🍎"}</Text>
+          <Text style={{ fontSize: 64 }}>{getProductEmoji(product.name, product.category.slug)}</Text>
         </View>
       )}
 
@@ -57,14 +66,22 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             value={String(qty)}
             onChangeText={(v) => setQty(Number(v) || product.min_order_quantity)}
           />
-          <Pressable style={styles.qtyBtn} onPress={() => setQty(Math.min(qty + 1, Number(product.stock_quantity)))}>
-            <Text style={styles.qtyBtnText}>+</Text>
+          <Pressable
+            style={[styles.qtyBtn, qty >= stock && styles.qtyBtnDisabled]}
+            onPress={() => setQty(Math.min(qty + 1, stock))}
+            disabled={qty >= stock}
+          >
+            <Text style={[styles.qtyBtnText, qty >= stock && styles.qtyBtnTextDisabled]}>+</Text>
           </Pressable>
         </View>
 
+        {overStock && (
+          <Text style={styles.stockError}>Stock insuficiente — apenas {stock} {product.unit} disponíveis</Text>
+        )}
+
         <Text style={styles.subtotal}>Subtotal: €{(Number(product.price_per_unit) * qty).toFixed(2)}</Text>
 
-        <Pressable style={styles.addBtn} onPress={handleAdd}>
+        <Pressable style={[styles.addBtn, !canAdd && styles.addBtnDisabled]} onPress={handleAdd} disabled={!canAdd}>
           <Text style={styles.addBtnText}>Adicionar ao Carrinho</Text>
         </Pressable>
       </View>
@@ -88,9 +105,13 @@ const styles = StyleSheet.create({
   qtyLabel: { fontSize: 15, fontWeight: "600", marginBottom: 8, color: "#333" },
   qtyRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
   qtyBtn: { width: 40, height: 40, borderRadius: 8, backgroundColor: "#e8f5e9", alignItems: "center", justifyContent: "center" },
+  qtyBtnDisabled: { backgroundColor: "#f0f0f0" },
   qtyBtnText: { fontSize: 22, color: "#2d6a4f", fontWeight: "700" },
+  qtyBtnTextDisabled: { color: "#bbb" },
   qtyInput: { flex: 1, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, textAlign: "center", fontSize: 18, padding: 8 },
+  stockError: { fontSize: 13, color: "#e53935", marginBottom: 10 },
   subtotal: { fontSize: 16, fontWeight: "600", color: "#333", marginBottom: 20 },
   addBtn: { backgroundColor: "#2d6a4f", borderRadius: 12, padding: 16, alignItems: "center" },
+  addBtnDisabled: { backgroundColor: "#a5c4ae" },
   addBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
 });
