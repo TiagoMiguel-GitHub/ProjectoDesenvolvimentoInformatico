@@ -1,42 +1,54 @@
-// Módulo de API para operações relacionadas com encomendas.
-// Interage diretamente com as tabelas e RPCs do Supabase.
+// Módulo de API para operações de encomendas no website.
+// Espelha a lógica da app mobile mas simplifica alguns parâmetros
+// (ex: `slots` calcula o intervalo de datas internamente em vez de receber from/to).
 import { supabase } from "../lib/supabase";
-import { Order, TimeSlot } from "../types";
+import type { Order, TimeSlot } from "../types";
+
+// Devolve a data atual no formato "YYYY-MM-DD" usando o fuso horário local
+function localDateStr(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 export const ordersApi = {
-  // Busca os horários disponíveis num intervalo de datas e para um tipo de slot (delivery/pickup).
-  // Calcula `is_available` no cliente com base em booked_count vs max_orders.
-  slots: async (from_date: string, to_date: string, slot_type = "delivery") => {
+  // Busca os horários disponíveis para os próximos 7 dias.
+  // O campo `is_available` é calculado no cliente comparando booked_count com max_orders.
+  slots: async (slot_type = "delivery") => {
+    const today = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(today.getDate() + 7);
     const { data } = await supabase
       .from("schedule_slots")
       .select("*")
       .eq("slot_type", slot_type)
-      .gte("slot_date", from_date)
-      .lte("slot_date", to_date)
+      .gte("slot_date", localDateStr(today))
+      .lte("slot_date", localDateStr(nextWeek))
       .order("slot_date")
       .order("start_time");
     return { data: (data ?? []).map((s) => ({ ...s, is_available: s.booked_count < s.max_orders })) as TimeSlot[] };
   },
 
-  // Determina o custo de entrega com base no código postal e subtotal da encomenda.
-  // Compara apenas os primeiros 4 dígitos do código postal para cobrir toda a localidade.
-  // Se o subtotal atingir o limiar de entrega gratuita da zona, o custo é 0.
-  calculateDeliveryCost: async (postal_code: string, order_subtotal: number) => {
+  // Calcula o custo de entrega com base no código postal do cliente e no subtotal da encomenda.
+  // Compara os 4 primeiros dígitos do código postal com as zonas de entrega configuradas.
+  // Se o subtotal atingir o limiar da zona, a entrega é gratuita.
+  calculateDeliveryCost: async (postal_code: string, subtotal: number) => {
     const prefix = postal_code.replace("-", "").slice(0, 4);
     const { data: zones } = await supabase.from("delivery_zones").select("*");
-    if (!zones) return { data: { zone: null, delivery_cost: 5.0, free_delivery_threshold: null } };
+    if (!zones) return { delivery_cost: 5.0 };
     const zone = zones.find((z: any) =>
       z.postal_codes.split(",").map((p: string) => p.trim()).some((p: string) => p.slice(0, 4) === prefix)
     );
-    if (!zone) return { data: { zone: null, delivery_cost: 5.0, free_delivery_threshold: null } };
-    const cost = zone.free_delivery_threshold && order_subtotal >= Number(zone.free_delivery_threshold) ? 0 : Number(zone.delivery_cost);
-    return { data: { zone: zone.name, delivery_cost: cost, free_delivery_threshold: zone.free_delivery_threshold } };
+    if (!zone) return { delivery_cost: 5.0 }; // zona desconhecida: custo padrão de 5€
+    const cost = zone.free_delivery_threshold && subtotal >= Number(zone.free_delivery_threshold) ? 0 : Number(zone.delivery_cost);
+    return { delivery_cost: cost };
   },
 
-  // Cria uma encomenda via RPC `create_order` no Supabase.
-  // A RPC é SECURITY DEFINER — corre com permissões de administrador para contornar o RLS
-  // e executar atomicamente: validação de stock, criação da encomenda, decremento de stock
-  // e atualização do contador do slot, tudo numa única transação de base de dados.
+  // Cria uma encomenda usando a RPC `create_order` do Supabase.
+  // A RPC é SECURITY DEFINER — executa como administrador para contornar o RLS
+  // e garantir atomicidade: validação de stock, criação de registos e decremento de stock
+  // num único bloco transacional, evitando condições de corrida com múltiplos utilizadores.
   create: async (payload: {
     address_id?: string;
     time_slot_id?: string;
@@ -59,13 +71,9 @@ export const ordersApi = {
     let deliveryCost = 0;
     if (payload.fulfillment_type === "delivery" && payload.address_id) {
       const { data: addr } = await supabase.from("addresses").select("postal_code").eq("id", payload.address_id).single();
-      if (addr) {
-        const result = await ordersApi.calculateDeliveryCost(addr.postal_code, subtotal);
-        deliveryCost = result.data.delivery_cost ?? 0;
-      }
+      if (addr) deliveryCost = (await ordersApi.calculateDeliveryCost(addr.postal_code, subtotal)).delivery_cost;
     }
 
-    // Chama a função RPC — todos os parâmetros são passados com prefixo `p_` por convenção SQL
     const { data: order, error } = await supabase.rpc("create_order", {
       p_user_id: session.user.id,
       p_address_id: payload.address_id ?? null,
@@ -78,12 +86,10 @@ export const ordersApi = {
     });
 
     if (error) throw new Error(error.message);
-
     return { data: order as Order };
   },
 
-  // Devolve todas as encomendas do utilizador autenticado com relações completas:
-  // morada, itens e produtos de cada item
+  // Devolve todas as encomendas do utilizador com relações expandidas (morada, itens, produtos)
   myOrders: async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return { data: [] as Order[] };
@@ -95,7 +101,7 @@ export const ordersApi = {
     return { data: (data ?? []) as Order[] };
   },
 
-  // Devolve uma encomenda específica com todo o histórico de estados
+  // Devolve uma encomenda específica incluindo o histórico de estados
   myOrder: async (id: string) => {
     const { data } = await supabase
       .from("orders")

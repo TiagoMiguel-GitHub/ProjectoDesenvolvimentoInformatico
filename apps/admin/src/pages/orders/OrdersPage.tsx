@@ -1,18 +1,24 @@
+// Página de gestão de encomendas do painel de admin.
+// Lista todas as encomendas com filtro por estado e permite atualizar o estado via modal.
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+// Estados possíveis de uma encomenda, pela ordem do ciclo de vida
 const STATUS_OPTIONS = ["pending", "confirmed", "preparing", "out_for_delivery", "completed", "cancelled"];
+
+// Tradução e cor associada a cada estado (cor usada no badge com transparência de 22%)
 const STATUS_LABELS: Record<string, string> = { pending: "Pendente", confirmed: "Confirmada", preparing: "Em preparação", out_for_delivery: "Em entrega", completed: "Concluída", cancelled: "Cancelada" };
 const STATUS_COLORS: Record<string, string> = { pending: "#f59e0b", confirmed: "#3b82f6", preparing: "#8b5cf6", out_for_delivery: "#f97316", completed: "#22c55e", cancelled: "#ef4444" };
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
-  const [filter, setFilter] = useState<string>("");
-  const [selected, setSelected] = useState<any>(null);
+  const [filter, setFilter] = useState<string>(""); // "" = todas as encomendas
+  const [selected, setSelected] = useState<any>(null); // encomenda aberta no modal
   const [newStatus, setNewStatus] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Carrega encomendas com relações expandidas — filtra por estado se houver filtro ativo
   async function load() {
     let query = supabase.from("orders").select("*, customer:profiles(full_name), address:addresses(*), items:order_items(*, product:products(*))").order("created_at", { ascending: false });
     if (filter) query = query.eq("status", filter);
@@ -22,10 +28,12 @@ export default function OrdersPage() {
   }
   useEffect(() => { load(); }, [filter]);
 
+  // Atualiza o estado da encomenda e opcionalmente regista uma nota no histórico
   async function updateStatus() {
     if (!newStatus || !selected) return;
     await supabase.from("orders").update({ status: newStatus }).eq("id", selected.id);
     if (note) {
+      // O histórico de estados permite rastrear alterações com notas do operador
       await supabase.from("order_status_history").insert({ order_id: selected.id, status: newStatus, note });
     }
     setSelected(null);
@@ -39,6 +47,7 @@ export default function OrdersPage() {
     <div>
       <h1 style={{ color: "#2d6a4f", marginBottom: 20 }}>Encomendas</h1>
 
+      {/* Botões de filtro por estado */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         <button style={{ ...s.filterBtn, ...(filter === "" ? s.filterActive : {}) }} onClick={() => setFilter("")}>Todas</button>
         {STATUS_OPTIONS.map((st) => (
@@ -46,6 +55,7 @@ export default function OrdersPage() {
         ))}
       </div>
 
+      {/* Tabela de encomendas */}
       <div className="table-scroll" style={s.tableWrap}>
         <div style={s.table}>
           <div style={s.thead}><span>ID</span><span>Cliente</span><span>Tipo</span><span>Total</span><span>Estado</span><span>Data</span><span></span></div>
@@ -57,6 +67,7 @@ export default function OrdersPage() {
                 <span style={{ fontWeight: 600, color: "#333" }}>{o.customer?.full_name ?? "—"}</span>
                 <span style={{ whiteSpace: "nowrap" }}>{o.fulfillment_type === "delivery" ? "🚚 Entrega" : "🏪 Levant."}</span>
                 <span style={{ fontWeight: 700, color: "#2d6a4f", whiteSpace: "nowrap" }}>€{Number(o.total).toFixed(2)}</span>
+                {/* Badge colorido com fundo transparente (cor + "22" = 13% opacidade em hex) */}
                 <span style={{ background: c + "22", color: c, padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{STATUS_LABELS[o.status]}</span>
                 <span style={{ fontSize: 13, color: "#888", whiteSpace: "nowrap" }}>{new Date(o.created_at).toLocaleDateString("pt-PT")}</span>
                 <button style={s.viewBtn} onClick={() => { setSelected(o); setNewStatus(o.status); }}>Ver / Atualizar</button>
@@ -66,6 +77,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* Modal de detalhe e atualização de estado */}
       {selected && (
         <div style={s.overlay}>
           <div className="modal-box" style={s.modal}>
@@ -74,6 +86,7 @@ export default function OrdersPage() {
               <p style={{ color: "#555", fontSize: 14, marginBottom: 16 }}>👤 {selected.customer.full_name}</p>
             )}
 
+            {/* Lista de itens da encomenda com preço total por linha */}
             <div style={{ marginBottom: 16 }}>
               {selected.items?.map((item: any) => (
                 <div key={item.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
@@ -86,6 +99,7 @@ export default function OrdersPage() {
               </div>
             </div>
 
+            {/* Morada de entrega, se aplicável */}
             {selected.address && (
               <p style={{ color: "#555", fontSize: 14, marginBottom: 16 }}>
                 📍 {selected.address.street}, {selected.address.city} {selected.address.postal_code}

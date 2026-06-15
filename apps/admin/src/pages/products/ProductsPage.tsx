@@ -1,23 +1,28 @@
+// Página de gestão de produtos do painel de admin.
+// Permite criar, editar, gerir stock e criar categorias através de modais.
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+
+// Converte um nome em slug URL-safe (ex: "Lenha de Pinheiro" → "lenha-de-pinheiro")
+// Remove acentos via NFD + regex e substitui espaços por hífens
+function toSlug(text: string) {
+  return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editProduct, setEditProduct] = useState<any>(null);
+  const [editProduct, setEditProduct] = useState<any>(null); // null = modo criação
   const [form, setForm] = useState({ name: "", slug: "", category_id: "", unit: "kg", price_per_unit: "", stock_quantity: "", min_order_quantity: "1", description: "" });
-  const [stockEdit, setStockEdit] = useState<{ id: string; value: string } | null>(null);
+  const [stockEdit, setStockEdit] = useState<{ id: string; value: string } | null>(null); // edição inline de stock
   const [saveError, setSaveError] = useState("");
   const [showCatForm, setShowCatForm] = useState(false);
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
   const [catError, setCatError] = useState("");
 
-  function toSlug(text: string) {
-    return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  }
-
+  // Carrega produtos (com categoria) e categorias em paralelo
   async function load() {
     const [{ data: p }, { data: c }] = await Promise.all([
       supabase.from("products").select("*, category:categories(*)").order("name"),
@@ -29,9 +34,13 @@ export default function ProductsPage() {
   }
   useEffect(() => { load(); }, []);
 
+  // Abre o modal em modo criação com campos em branco
   function openCreate() { setSaveError(""); setEditProduct(null); setForm({ name: "", slug: "", category_id: categories[0]?.id ?? "", unit: "kg", price_per_unit: "", stock_quantity: "0", min_order_quantity: "1", description: "" }); setShowForm(true); }
+
+  // Abre o modal em modo edição preenchido com os dados do produto existente
   function openEdit(p: any) { setSaveError(""); setEditProduct(p); setForm({ name: p.name, slug: p.slug, category_id: p.category.id, unit: p.unit, price_per_unit: String(p.price_per_unit), stock_quantity: String(p.stock_quantity), min_order_quantity: String(p.min_order_quantity), description: p.description ?? "" }); setShowForm(true); }
 
+  // Atualiza um campo do formulário; ao escrever o nome em modo criação, gera o slug automaticamente
   function setField(key: string, value: string) {
     setForm((f) => {
       const updated = { ...f, [key]: value };
@@ -40,6 +49,7 @@ export default function ProductsPage() {
     });
   }
 
+  // Cria ou atualiza o produto na base de dados e recarrega a lista
   async function save() {
     setSaveError("");
     if (!form.name || !form.price_per_unit || !form.category_id) { setSaveError("Nome, preço e categoria são obrigatórios"); return; }
@@ -64,6 +74,7 @@ export default function ProductsPage() {
     setCatForm((f) => { const updated = { ...f, [key]: value }; if (key === "name") updated.slug = toSlug(value); return updated; });
   }
 
+  // Cria uma nova categoria — o slug é gerado automaticamente a partir do nome
   async function saveCategory() {
     setCatError("");
     if (!catForm.name) { setCatError("Nome é obrigatório"); return; }
@@ -78,6 +89,7 @@ export default function ProductsPage() {
     }
   }
 
+  // Atualiza o stock de um produto diretamente na tabela sem abrir o modal completo
   async function updateStock(id: string, qty: string) {
     await supabase.from("products").update({ stock_quantity: Number(qty) }).eq("id", id);
     setStockEdit(null);
@@ -96,12 +108,14 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {/* Chips das categorias existentes como referência visual */}
       {categories.length > 0 && (
         <div style={s.catBar}>
           {categories.map((c) => <span key={c.id} style={s.catChip}>{c.name}</span>)}
         </div>
       )}
 
+      {/* Tabela de produtos com edição inline do stock */}
       <div className="table-scroll" style={s.tableWrap}>
         <div style={s.table}>
           <div style={s.thead}><span>Produto</span><span>Categoria</span><span>Preço</span><span>Stock</span><span>Estado</span><span>Ações</span></div>
@@ -118,6 +132,7 @@ export default function ProductsPage() {
               </div>
               <span style={{ whiteSpace: "nowrap" }}>{p.category?.name}</span>
               <span style={{ whiteSpace: "nowrap" }}>€{Number(p.price_per_unit).toFixed(2)}</span>
+              {/* Célula de stock: clique para editar inline, botões para confirmar/cancelar */}
               <div>
                 {stockEdit?.id === p.id ? (
                   <div style={{ display: "flex", gap: 4 }}>
@@ -138,6 +153,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {/* Modal de criação de categoria */}
       {showCatForm && (
         <div style={s.overlay} onClick={() => setShowCatForm(false)}>
           <div className="modal-box-sm" style={s.modal} onClick={(e) => e.stopPropagation()}>
@@ -153,6 +169,7 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {/* Modal de criação/edição de produto */}
       {showForm && (
         <div style={s.overlay} onClick={() => setShowForm(false)}>
           <div className="modal-box" style={s.modal} onClick={(e) => e.stopPropagation()}>

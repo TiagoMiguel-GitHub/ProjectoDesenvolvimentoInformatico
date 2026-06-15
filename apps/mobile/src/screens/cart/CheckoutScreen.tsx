@@ -6,15 +6,19 @@ import { ordersApi } from "../../api/orders";
 import { useCart } from "../../context/CartContext";
 import { Address, TimeSlot } from "../../types";
 
+// Opções de pagamento disponíveis para a encomenda
 const PAYMENT_OPTIONS = [
   { key: "cash_on_delivery", label: "💵 Pagamento na entrega" },
   { key: "mbway", label: "📱 MB Way" },
   { key: "multibanco", label: "🏧 Multibanco" },
 ];
 
+// Nomes dos meses e dias da semana em português para formatar as datas dos horários
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const DAYS_PT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+// Devolve a data atual no formato "YYYY-MM-DD" usando o fuso horário local do dispositivo.
+// Não se usa toISOString() porque esta converte para UTC e pode devolver o dia errado.
 function localDateStr(date: Date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -22,16 +26,20 @@ function localDateStr(date: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
+// Verifica se um horário já não está disponível para seleção.
+// Para o dia de hoje exige pelo menos 2 horas de antecedência.
 function isSlotExpired(slot: TimeSlot): boolean {
   const now = new Date();
   const today = localDateStr(now);
-  if (slot.slot_date < today) return true;
-  if (slot.slot_date > today) return false;
-  // Hoje: exige 2 horas de antecedência
+  if (slot.slot_date < today) return true;   // data passada
+  if (slot.slot_date > today) return false;  // data futura — sempre válida
+  // Hoje: compara o horário de início com a hora atual + 2h de buffer
   const [h, m] = slot.start_time.split(":").map(Number);
   return h * 60 + m <= now.getHours() * 60 + now.getMinutes() + 120;
 }
 
+// Formata uma data "YYYY-MM-DD" de forma amigável:
+// "Hoje · 15 Jun", "Amanhã · 16 Jun", ou "Seg · 17 Jun"
 function formatSlotDate(dateStr: string): string {
   const today = localDateStr();
   const tomorrowDate = new Date();
@@ -60,14 +68,17 @@ export default function CheckoutScreen({ navigation }: any) {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Recarrega as moradas sempre que o ecrã ganha foco (ex: após adicionar uma morada nova)
   useFocusEffect(useCallback(() => {
     authApi.listAddresses().then(({ data }) => {
       setAddresses(data ?? []);
+      // Seleciona a morada padrão ou a primeira da lista
       const def = (data ?? []).find((a: Address) => a.is_default) ?? (data ?? [])[0] ?? null;
       setSelectedAddress(def);
     });
   }, []));
 
+  // Recarrega os horários disponíveis e limpa a seleção quando muda o tipo de entrega
   useEffect(() => {
     setSelectedSlot(null);
     const today = new Date();
@@ -76,16 +87,18 @@ export default function CheckoutScreen({ navigation }: any) {
     ordersApi.slots(localDateStr(today), localDateStr(nextWeek), fulfillment).then(({ data }) => setSlots(data));
   }, [fulfillment]);
 
+  // Calcula o custo de entrega com base no código postal da morada selecionada
   useEffect(() => {
     if (fulfillment === "delivery" && selectedAddress) {
       ordersApi.calculateDeliveryCost(selectedAddress.postal_code, total).then(({ data }) => {
         setDeliveryCost(data.delivery_cost ?? 0);
       });
     } else {
-      setDeliveryCost(0);
+      setDeliveryCost(0); // levantamento em loja é sempre gratuito
     }
   }, [fulfillment, selectedAddress, total]);
 
+  // Filtra os horários expirados e agrupa os restantes por data para exibição
   const availableSlots = slots.filter((s) => s.is_available && !isSlotExpired(s));
   const slotsByDate = availableSlots.reduce<Record<string, TimeSlot[]>>((acc, s) => {
     (acc[s.slot_date] ??= []).push(s);
@@ -93,9 +106,11 @@ export default function CheckoutScreen({ navigation }: any) {
   }, {});
   const sortedDates = Object.keys(slotsByDate).sort();
 
+  // Cria a encomenda via API, limpa o carrinho e navega para o detalhe da encomenda
   async function placeOrder() {
     if (fulfillment === "delivery" && !selectedAddress) return Alert.alert("Erro", "Selecione uma morada de entrega");
     if (!selectedSlot) return Alert.alert("Erro", "Selecione um horário");
+    // Validação final: o utilizador pode ter ficado na página tempo suficiente para o slot expirar
     if (isSlotExpired(selectedSlot)) {
       setSelectedSlot(null);
       return Alert.alert("Horário expirado", "O horário selecionado já não está disponível. Por favor escolha outro.");
@@ -110,7 +125,7 @@ export default function CheckoutScreen({ navigation }: any) {
         items: items.map((i) => ({ product_id: i.product.id, quantity: i.quantity })),
         notes: notes || undefined,
       });
-      clear();
+      clear(); // esvazia o carrinho após encomenda bem-sucedida
       navigation.replace("OrderDetail", { orderId: order.id });
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível criar a encomenda");
@@ -120,8 +135,11 @@ export default function CheckoutScreen({ navigation }: any) {
   }
 
   return (
+    // KeyboardAvoidingView garante que o teclado não tape os campos de texto no iOS
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
+
+      {/* Seleção entre entrega ao domicílio e levantamento em loja */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tipo de entrega</Text>
         <View style={styles.toggle}>
@@ -135,6 +153,7 @@ export default function CheckoutScreen({ navigation }: any) {
         </View>
       </View>
 
+      {/* Seleção de morada — apenas visível quando o tipo é "delivery" */}
       {fulfillment === "delivery" && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Morada de entrega</Text>
@@ -154,6 +173,7 @@ export default function CheckoutScreen({ navigation }: any) {
         </View>
       )}
 
+      {/* Grelha de horários disponíveis agrupados por data */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Horário</Text>
         {sortedDates.length === 0 ? (
@@ -176,6 +196,7 @@ export default function CheckoutScreen({ navigation }: any) {
         )}
       </View>
 
+      {/* Método de pagamento */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Método de pagamento</Text>
         {PAYMENT_OPTIONS.map((opt) => (
@@ -185,11 +206,13 @@ export default function CheckoutScreen({ navigation }: any) {
         ))}
       </View>
 
+      {/* Campo de notas livre para instruções especiais de entrega */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notas (opcional)</Text>
         <TextInput style={styles.notesInput} placeholder="Ex: deixar no portão..." multiline value={notes} onChangeText={setNotes} />
       </View>
 
+      {/* Resumo de preços com subtotal, custo de entrega e total final */}
       <View style={styles.summary}>
         <View style={styles.summRow}><Text>Subtotal</Text><Text>€{total.toFixed(2)}</Text></View>
         <View style={styles.summRow}><Text>Entrega</Text><Text>€{deliveryCost.toFixed(2)}</Text></View>

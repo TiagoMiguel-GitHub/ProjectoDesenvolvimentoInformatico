@@ -1,3 +1,6 @@
+// Contexto de autenticação do painel de administração.
+// Difere do contexto do website/app porque verifica se o utilizador tem role="admin"
+// antes de permitir o acesso — qualquer outra role é tratada como não autenticada.
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -15,6 +18,7 @@ const AuthContext = createContext<AuthContextValue>(null!);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
+  // Ref para evitar chamadas duplicadas ao `loadUser` durante o ciclo de vida inicial
   const initialized = useRef(false);
 
   function done(u: AdminUser | null) {
@@ -22,6 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }
 
+  // Lê o perfil da base de dados e verifica se o role é "admin".
+  // Se não for admin (ou se ocorrer um erro), termina a sessão automaticamente.
   async function loadUser(userId: string, email: string) {
     try {
       const { data, error } = await supabase
@@ -31,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       initialized.current = true;
       if (error || !data || data.role !== "admin") {
+        // Utilizador autenticado mas sem permissões de admin — força logout por segurança
         await supabase.auth.signOut();
         done(null);
       } else {
@@ -44,7 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Safety timeout — never stay stuck on loading
+    // Timeout de segurança: se o Supabase não responder em 5 segundos,
+    // desbloqueia o loading para evitar que a app fique presa a carregar indefinidamente
     const timer = setTimeout(() => {
       if (!initialized.current) {
         initialized.current = true;
@@ -52,6 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, 5000);
 
+    // Escuta os eventos de autenticação do Supabase.
+    // Só reage a INITIAL_SESSION, SIGNED_IN e TOKEN_REFRESHED para carregar o perfil;
+    // outros eventos (ex: PASSWORD_RECOVERY) são ignorados propositadamente.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (_event === "INITIAL_SESSION" || _event === "SIGNED_IN" || _event === "TOKEN_REFRESHED") {
         if (session?.user) {
@@ -75,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function login(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
+    // Após login bem-sucedido, o onAuthStateChange recebe SIGNED_IN e chama loadUser
   }
 
   async function logout() {

@@ -1,3 +1,6 @@
+// Estrutura de navegação da aplicação mobile.
+// Usa uma Stack Navigator raiz com um Tab Navigator encaixado como ecrã principal.
+// Ecrãs que exigem login mostram um ecrã de "guest" em vez de redirecionar.
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
@@ -24,6 +27,7 @@ import AddressesScreen from "../screens/profile/AddressesScreen";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Ecrã genérico mostrado a utilizadores não autenticados que tentam aceder a áreas protegidas
 function GuestScreen({ navigation, message }: { navigation: any; message: string }) {
   return (
     <View style={gs.container}>
@@ -40,22 +44,29 @@ function GuestScreen({ navigation, message }: { navigation: any; message: string
   );
 }
 
+// Wrapper do tab "Carrinho" — passa a prop navigation ao CartScreen
 function CartTab({ navigation }: any) {
   return <CartScreen navigation={navigation} />;
 }
 
+// Tab "Encomendas" — requer login
 function OrdersTab({ navigation }: any) {
   const { user } = useAuth();
   if (!user) return <GuestScreen navigation={navigation} message="Inicia sessão para veres as tuas encomendas." />;
   return <OrdersScreen navigation={navigation} />;
 }
 
+// Tab "Perfil" — mostra GuestProfileScreen se não autenticado
 function ProfileTab({ navigation }: any) {
   const { user } = useAuth();
   if (!user) return <GuestProfileScreen navigation={navigation} />;
   return <ProfileScreen navigation={navigation} />;
 }
 
+// Versão do perfil para utilizadores não autenticados.
+// Ainda dá acesso ao Simulador sem login.
+// Nota: usa `navigation.navigate("Simulator" as never)` em vez de `getParent()?.navigate()`
+// porque em React Navigation v7 o navigate() já sobe automaticamente na árvore de navigators.
 function GuestProfileScreen({ navigation }: { navigation: any }) {
   return (
     <View style={gs.container}>
@@ -75,6 +86,8 @@ function GuestProfileScreen({ navigation }: { navigation: any }) {
   );
 }
 
+// Bottom Tab Navigator com 4 separadores.
+// O badge do carrinho mostra o número de itens quando há algum no carrinho.
 function StoreTabs() {
   const { itemCount } = useCart();
   return (
@@ -103,6 +116,9 @@ function StoreTabs() {
   );
 }
 
+// Componente raiz de navegação.
+// Aguarda a verificação da sessão (loading) antes de montar o NavigationContainer,
+// evitando que o utilizador veja um flash do ecrã de login antes do estado carregar.
 export default function AppNavigator() {
   const { loading } = useAuth();
 
@@ -116,6 +132,7 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
+      {/* Stack raiz: Tab principal + ecrãs de detalhe acessíveis a partir de qualquer tab */}
       <Stack.Navigator screenOptions={{ headerTintColor: "#2d6a4f" }}>
         <Stack.Screen name="Main" component={StoreTabs} options={{ headerShown: false }} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ title: "Produto" }} />

@@ -1,17 +1,22 @@
+// Página inicial do painel de admin — apresenta estatísticas das encomendas e a lista mais recente.
+// Todos os dados são calculados no cliente a partir das encomendas carregadas de uma vez.
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+// Contagem de encomendas por estado, calculada a partir do array de encomendas
 interface Stats { total: number; pending: number; confirmed: number; preparing: number; out_for_delivery: number; completed: number; }
 
 export default function DashboardPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Carrega todas as encomendas com o nome do cliente (join com profiles)
   useEffect(() => {
     supabase.from("orders").select("*, profiles(full_name)").order("created_at", { ascending: false })
       .then(({ data }) => { setOrders(data ?? []); setLoading(false); });
   }, []);
 
+  // Estatísticas calculadas no cliente — evita múltiplas queries à base de dados
   const stats: Stats = {
     total: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
@@ -20,6 +25,7 @@ export default function DashboardPage() {
     out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
     completed: orders.filter((o) => o.status === "completed").length,
   };
+  // Receita total: soma apenas das encomendas concluídas
   const revenue = orders.filter((o) => o.status === "completed").reduce((s: number, o: any) => s + Number(o.total), 0);
 
   if (loading) return <div style={{ padding: 32 }}>A carregar...</div>;
@@ -27,6 +33,7 @@ export default function DashboardPage() {
   return (
     <div>
       <h1 style={s.title}>Dashboard</h1>
+      {/* Grelha de cartões com as métricas principais */}
       <div style={s.grid}>
         <StatCard label="Total de encomendas" value={stats.total} color="#2d6a4f" />
         <StatCard label="Pendentes" value={stats.pending} color="#f59e0b" />
@@ -36,6 +43,7 @@ export default function DashboardPage() {
         <StatCard label="Receita total" value={`€${revenue.toFixed(2)}`} color="#3b82f6" />
       </div>
 
+      {/* Tabela com as 10 encomendas mais recentes */}
       <h2 style={{ marginTop: 32, marginBottom: 16, color: "#333" }}>Últimas encomendas</h2>
       <div className="table-scroll" style={s.tableWrap}>
         <div style={s.table}>
@@ -57,6 +65,7 @@ export default function DashboardPage() {
   );
 }
 
+// Cartão de estatística com barra colorida no topo para diferenciação visual
 function StatCard({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
     <div style={{ ...s.statCard, borderTop: `4px solid ${color}` }}>
@@ -66,6 +75,7 @@ function StatCard({ label, value, color }: { label: string; value: number | stri
   );
 }
 
+// Badge colorido para o estado da encomenda — usa uma versão transparente da cor para o fundo
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = { pending: "#f59e0b", confirmed: "#3b82f6", preparing: "#8b5cf6", out_for_delivery: "#f97316", completed: "#22c55e", cancelled: "#ef4444" };
   const labels: Record<string, string> = { pending: "Pendente", confirmed: "Confirmada", preparing: "Em preparação", out_for_delivery: "Em entrega", completed: "Concluída", cancelled: "Cancelada" };

@@ -1,3 +1,5 @@
+// Ecrã de perfil do utilizador autenticado.
+// Permite ver os dados da conta, editar nome e telemóvel, e aceder a sub-secções.
 import React, { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -5,18 +7,20 @@ import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../api/auth";
 
 export default function ProfileScreen({ navigation }: any) {
-  const { top } = useSafeAreaInsets();
+  const { top } = useSafeAreaInsets(); // espaço para a barra de estado do sistema
   const { user, logout, refreshUser } = useAuth();
   const [editing, setEditing] = useState(false);
+  // Estado local do formulário inicializado com os valores atuais do utilizador
   const [name, setName] = useState(user?.full_name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [saving, setSaving] = useState(false);
 
+  // Guarda as alterações na base de dados e atualiza o contexto global
   async function handleSave() {
     setSaving(true);
     try {
       await authApi.updateMe({ full_name: name.trim(), phone: phone.trim() || undefined });
-      await refreshUser();
+      await refreshUser(); // sincroniza o contexto com os novos dados
       setEditing(false);
     } catch {
       Alert.alert("Erro", "Não foi possível guardar as alterações");
@@ -25,12 +29,14 @@ export default function ProfileScreen({ navigation }: any) {
     }
   }
 
+  // Descarta as alterações e repõe os valores originais
   function handleCancelEdit() {
     setName(user?.full_name ?? "");
     setPhone(user?.phone ?? "");
     setEditing(false);
   }
 
+  // Pede confirmação antes de terminar a sessão
   async function handleLogout() {
     Alert.alert("Terminar sessão", "Tem a certeza?", [
       { text: "Cancelar" },
@@ -40,12 +46,14 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: top + 20, gap: 16 }}>
+      {/* Cabeçalho com avatar gerado a partir da inicial do nome */}
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user?.full_name?.charAt(0)?.toUpperCase()}</Text>
         </View>
 
         {editing ? (
+          // Modo de edição: campos para nome e telemóvel
           <View style={styles.editForm}>
             <TextInput
               style={styles.editInput}
@@ -71,6 +79,7 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           </View>
         ) : (
+          // Modo de visualização: dados do utilizador e botão de edição
           <>
             <Text style={styles.name}>{user?.full_name}</Text>
             <Text style={styles.email}>{user?.email}</Text>
@@ -82,6 +91,9 @@ export default function ProfileScreen({ navigation }: any) {
         )}
       </View>
 
+      {/* Menu de navegação para as secções da conta.
+          Usa navigation.navigate() em vez de getParent()?.navigate() para funcionar
+          corretamente em React Navigation v7 (navega para cima na Stack raiz). */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Conta</Text>
         <MenuItem icon="📦" label="As minhas encomendas" onPress={() => navigation.navigate("OrdersTab" as never)} />
@@ -96,6 +108,7 @@ export default function ProfileScreen({ navigation }: any) {
   );
 }
 
+// Componente reutilizável para cada linha do menu de navegação
 function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
   return (
     <Pressable style={styles.menuItem} onPress={onPress}>

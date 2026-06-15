@@ -1,7 +1,11 @@
+// Layout base do painel de administração.
+// Inclui a sidebar de navegação (desktop) e um menu hamburger (mobile),
+// com o conteúdo da página renderizado na área principal via `children`.
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// Itens de navegação da sidebar — cada entrada liga a uma secção do painel
 const NAV = [
   { path: "/", label: "📊 Dashboard" },
   { path: "/products", label: "🛍️ Produtos" },
@@ -14,13 +18,15 @@ const NAV = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
-  const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation(); // usado para destacar o link ativo na sidebar
+  const [menuOpen, setMenuOpen] = useState(false); // controla o menu mobile
 
   return (
     <div style={s.wrapper}>
+      {/* Backdrop escuro atrás da sidebar em mobile — fecha ao clicar */}
       {menuOpen && <div style={s.backdrop} onClick={() => setMenuOpen(false)} />}
 
+      {/* Sidebar lateral — classe "open" adicionada via CSS para deslizar em mobile */}
       <aside className={`sidebar${menuOpen ? " open" : ""}`} style={s.sidebar}>
         <div style={s.brand}>🌿 AgroWood</div>
         <nav style={s.nav}>
@@ -31,6 +37,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+        {/* Nome do administrador e botão de logout no rodapé da sidebar */}
         <div style={s.userInfo}>
           <div style={s.userName}>{user?.full_name}</div>
           <button style={s.logoutBtn} onClick={logout}>Sair</button>
@@ -38,10 +45,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div style={s.contentWrap}>
+        {/* Barra superior em mobile com botão hambúrguer — oculta em desktop */}
         <header className="top-bar" style={s.topBar}>
           <button style={s.hamburger} onClick={() => setMenuOpen(!menuOpen)}>☰</button>
           <span style={s.topBarTitle}>🌿 AgroWood</span>
         </header>
+        {/* Área de conteúdo onde são renderizadas as páginas via React Router */}
         <main className="main-content" style={s.main}>{children}</main>
       </div>
     </div>
