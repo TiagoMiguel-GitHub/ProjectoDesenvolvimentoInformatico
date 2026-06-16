@@ -1,7 +1,7 @@
 // Ecrã de perfil do utilizador autenticado.
 // Permite ver os dados da conta, editar nome e telemóvel, e aceder a sub-secções.
 import React, { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../api/auth";
@@ -45,7 +45,8 @@ export default function ProfileScreen({ navigation }: any) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: top + 20, gap: 16 }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: top + 20, gap: 16 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       {/* Cabeçalho com avatar gerado a partir da inicial do nome */}
       <View style={styles.header}>
         <View style={styles.avatar}>
@@ -105,6 +106,7 @@ export default function ProfileScreen({ navigation }: any) {
         <Text style={styles.logoutText}>Terminar sessão</Text>
       </Pressable>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

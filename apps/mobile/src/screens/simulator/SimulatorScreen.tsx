@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { simulatorApi } from "../../api/simulator";
 import { SimulatorConfig } from "../../types";
 
@@ -36,9 +36,11 @@ export default function SimulatorScreen() {
   const [includeTransport, setIncludeTransport] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [calculatedKm, setCalculatedKm] = useState<number | null>(null); // distância calculada pelo Haversine
-  const [geocoding, setGeocoding] = useState(false); // loading enquanto chama o Nominatim
-  const [result, setResult] = useState<any>(null); // orçamento devolvido pela API
+  const [geocoding, setGeocoding] = useState(false);
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const addressInputRef = useRef<View>(null);
 
   // Carrega os tipos de madeira disponíveis ao montar o ecrã
   useEffect(() => {
@@ -96,7 +98,14 @@ export default function SimulatorScreen() {
   const selectedConfig = configs.find((c) => c.wood_type === selectedType);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, gap: 16 }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.container}
+      contentContainerStyle={{ padding: 20, gap: 16 }}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <Text style={styles.title}>🧮 Simulador de Orçamento</Text>
       <Text style={styles.subtitle}>Calcule o preço da sua madeira</Text>
 
@@ -131,7 +140,7 @@ export default function SimulatorScreen() {
         </Pressable>
 
         {includeTransport && (
-          <View style={{ marginTop: 14, gap: 10 }}>
+          <View ref={addressInputRef} style={{ marginTop: 14, gap: 10 }}>
             <Text style={styles.label}>Morada de entrega</Text>
             <TextInput
               style={styles.input}
@@ -139,6 +148,13 @@ export default function SimulatorScreen() {
               onChangeText={(v) => { setDeliveryAddress(v); setCalculatedKm(null); }}
               placeholder="Ex: Rua das Flores 10, Porto"
               autoCapitalize="words"
+              onFocus={() => {
+                addressInputRef.current?.measureLayout(
+                  scrollViewRef.current as any,
+                  (_x, y) => scrollViewRef.current?.scrollTo({ y: y - 16, animated: true }),
+                  () => scrollViewRef.current?.scrollToEnd({ animated: true }),
+                );
+              }}
             />
             {/* Botão que chama o Nominatim e aplica o Haversine */}
             <Pressable style={styles.distBtn} onPress={handleCalculateDistance} disabled={geocoding}>
@@ -179,6 +195,7 @@ export default function SimulatorScreen() {
         </View>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

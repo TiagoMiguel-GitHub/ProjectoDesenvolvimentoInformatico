@@ -48,16 +48,18 @@ export default function StoreScreen({ navigation }: any) {
     <View style={[styles.container, { paddingTop: top }]}>
       <TextInput style={styles.search} placeholder="🔍  Pesquisar..." value={search} onChangeText={setSearch} />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cats}>
-        <Pressable style={[styles.catChip, !selectedCategory && styles.catActive]} onPress={() => setSelectedCategory(null)}>
-          <Text style={[styles.catText, !selectedCategory && styles.catTextActive]}>Todos</Text>
-        </Pressable>
-        {categories.map((c) => (
-          <Pressable key={c.id} style={[styles.catChip, selectedCategory === c.id && styles.catActive]} onPress={() => setSelectedCategory(c.id)}>
-            <Text style={[styles.catText, selectedCategory === c.id && styles.catTextActive]}>{c.name}</Text>
+      <View style={styles.catsSection}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Pressable style={[styles.catChip, !selectedCategory && styles.catActive]} onPress={() => setSelectedCategory(null)}>
+            <Text style={[styles.catText, !selectedCategory && styles.catTextActive]}>Todos</Text>
           </Pressable>
-        ))}
-      </ScrollView>
+          {categories.map((c) => (
+            <Pressable key={c.id} style={[styles.catChip, selectedCategory === c.id && styles.catActive]} onPress={() => setSelectedCategory(c.id)}>
+              <Text style={[styles.catText, selectedCategory === c.id && styles.catTextActive]}>{c.name}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color="#2d6a4f" size="large" />
@@ -94,8 +96,8 @@ export default function StoreScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5" },
   search: { margin: 12, backgroundColor: "#fff", borderRadius: 10, padding: 12, fontSize: 15, borderWidth: 1, borderColor: "#e0e0e0" },
-  cats: { paddingHorizontal: 12, marginBottom: 4 },
-  catChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: "#e8f5e9", marginRight: 8 },
+  catsSection: { backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginHorizontal: 12, marginBottom: 8 },
+  catChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "#e8f5e9", marginRight: 8 },
   catActive: { backgroundColor: "#2d6a4f" },
   catText: { color: "#2d6a4f", fontWeight: "600" },
   catTextActive: { color: "#fff" },

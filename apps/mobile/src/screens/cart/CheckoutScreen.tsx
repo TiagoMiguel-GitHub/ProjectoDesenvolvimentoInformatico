@@ -8,7 +8,7 @@ import { Address, TimeSlot } from "../../types";
 
 // Opções de pagamento disponíveis para a encomenda
 const PAYMENT_OPTIONS = [
-  { key: "cash_on_delivery", label: "💵 Pagamento na entrega" },
+  { key: "cash_on_delivery", label: "💵 Dinheiro" },
   { key: "mbway", label: "📱 MB Way" },
   { key: "multibanco", label: "🏧 Multibanco" },
 ];
@@ -173,11 +173,21 @@ export default function CheckoutScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Grelha de horários disponíveis agrupados por data */}
+      {/* Horários disponíveis */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Horário</Text>
+        <Text style={styles.sectionTitle}>{fulfillment === "pickup" ? "Dia de levantamento" : "Horário"}</Text>
         {sortedDates.length === 0 ? (
           <Text style={styles.hint}>Sem horários disponíveis esta semana</Text>
+        ) : fulfillment === "pickup" ? (
+          sortedDates.map((date) => {
+            const slot = slotsByDate[date][0];
+            return (
+              <Pressable key={date} style={[styles.slotRow, selectedSlot?.slot_date === date && styles.slotSelected]} onPress={() => setSelectedSlot(slot)}>
+                <Text style={styles.slotDateLabel}>{formatSlotDate(date)}</Text>
+                <Text style={styles.slotHours}>🏪 Aberto das {slot.start_time.slice(0, 5)} às {slot.end_time.slice(0, 5)}</Text>
+              </Pressable>
+            );
+          })
         ) : (
           sortedDates.map((date) => (
             <View key={date}>
@@ -250,6 +260,8 @@ const styles = StyleSheet.create({
   slotRow: { padding: 12, borderWidth: 1, borderColor: "#ccc", borderRadius: 10, marginBottom: 8 },
   slotSelected: { borderColor: "#2d6a4f", backgroundColor: "#f0faf4" },
   slotTime: { color: "#2d6a4f", fontWeight: "600", fontSize: 15 },
+  slotDateLabel: { fontWeight: "700", color: "#333", fontSize: 15 },
+  slotHours: { color: "#555", fontSize: 13, marginTop: 3 },
   payRow: { padding: 12, borderWidth: 1, borderColor: "#ccc", borderRadius: 10, marginBottom: 8 },
   paySelected: { borderColor: "#2d6a4f", backgroundColor: "#f0faf4" },
   payText: { fontWeight: "600", color: "#333" },

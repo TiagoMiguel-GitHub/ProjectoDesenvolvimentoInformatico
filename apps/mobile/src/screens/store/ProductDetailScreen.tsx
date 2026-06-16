@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { useCart } from "../../context/CartContext";
 import { getProductEmoji } from "../../lib/productEmoji";
 import { Product } from "../../types";
@@ -31,7 +31,8 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       {product.image_url ? (
         <Image source={{ uri: product.image_url }} style={[styles.image, { height: imageHeight }]} />
       ) : (
@@ -86,6 +87,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
         </Pressable>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

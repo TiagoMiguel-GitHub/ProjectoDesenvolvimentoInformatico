@@ -44,6 +44,7 @@ export default function SchedulePage() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"delivery" | "pickup">("delivery");
 
   async function load() {
     const today = new Date().toISOString().split("T")[0];
@@ -105,7 +106,8 @@ export default function SchedulePage() {
 
   if (loading) return <div>A carregar...</div>;
 
-  const grouped = slots.reduce<Record<string, Slot[]>>((acc, sl) => {
+  const filtered = slots.filter((s) => s.slot_type === activeTab);
+  const grouped = filtered.reduce<Record<string, Slot[]>>((acc, sl) => {
     (acc[sl.slot_date] = acc[sl.slot_date] || []).push(sl);
     return acc;
   }, {});
@@ -115,12 +117,22 @@ export default function SchedulePage() {
   return (
     <div>
       <div style={s.header}>
-        <h1 style={s.title}>Horários de Entrega</h1>
-        <button style={s.addBtn} onClick={() => { setError(""); setForm(emptyForm); setShowForm(true); }}>+ Novo horário</button>
+        <h1 style={s.title}>Horários</h1>
+        <button style={s.addBtn} onClick={() => { setError(""); setForm({ ...emptyForm, slot_type: activeTab }); setShowForm(true); }}>+ Novo horário</button>
+      </div>
+
+      <div style={s.tabs}>
+        {(["delivery", "pickup"] as const).map((tab) => (
+          <button key={tab} style={{ ...s.tab, ...(activeTab === tab ? s.tabActive : {}) }} onClick={() => setActiveTab(tab)}>
+            {tab === "delivery" ? "🚚 Entrega" : "🏪 Levantamento"}
+          </button>
+        ))}
       </div>
 
       {Object.keys(grouped).length === 0 && (
-        <div style={s.empty}>Nenhum horário disponível. Crie um para que os clientes possam fazer encomendas.</div>
+        <div style={s.empty}>
+          {activeTab === "delivery" ? "Nenhum horário de entrega. Crie um para que os clientes possam fazer encomendas." : "Nenhum horário de levantamento. Crie um para que os clientes saibam quando podem levantar."}
+        </div>
       )}
 
       {Object.entries(grouped).map(([date, daySlots]) => (
@@ -236,6 +248,9 @@ const s: Record<string, any> = {
   slotTime: { fontWeight: 600, color: "#333", minWidth: 110 },
   slotCapacity: { flex: 1, color: "#555", fontSize: 14 },
   deleteBtn: { background: "#fee2e2", color: "#ef4444", border: "none", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 13 },
+  tabs: { display: "flex", gap: 8, marginBottom: 20 },
+  tab: { padding: "8px 20px", borderRadius: 8, border: "2px solid #ccc", background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 14, color: "#555" },
+  tabActive: { background: "#2d6a4f", borderColor: "#2d6a4f", color: "#fff" },
   overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 },
   modal: { background: "#fff", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column", gap: 10 },
   label: { fontSize: 13, fontWeight: 600, color: "#555" },

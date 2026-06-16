@@ -25,7 +25,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <Text style={styles.title}>Recuperar password</Text>
       <Text style={styles.subtitle}>Insira o email associado à sua conta e enviamos um link para redefinir a password.</Text>
 

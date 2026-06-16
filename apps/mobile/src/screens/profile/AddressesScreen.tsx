@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { authApi } from "../../api/auth";
 
@@ -63,7 +63,8 @@ export default function AddressesScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, gap: 12 }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       {addresses.map((a) => (
         <View key={a.id} style={[styles.card, a.is_default && styles.cardDefault]}>
           <View style={{ flex: 1 }}>
@@ -103,6 +104,7 @@ export default function AddressesScreen() {
         </Pressable>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

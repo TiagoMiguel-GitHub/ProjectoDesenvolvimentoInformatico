@@ -54,7 +54,7 @@ export default function ProductsPage() {
     setSaveError("");
     if (!form.name || !form.price_per_unit || !form.category_id) { setSaveError("Nome, preço e categoria são obrigatórios"); return; }
     const slug = form.slug || toSlug(form.name);
-    const body = { ...form, slug, description: form.description || null, price_per_unit: Number(form.price_per_unit), stock_quantity: Number(form.stock_quantity), min_order_quantity: Number(form.min_order_quantity) };
+    const body = { ...form, slug, description: form.description || null, price_per_unit: Number(form.price_per_unit), stock_quantity: Math.max(0, Number(form.stock_quantity)), min_order_quantity: Math.max(1, Number(form.min_order_quantity)) };
     try {
       if (editProduct) {
         const { error } = await supabase.from("products").update(body).eq("id", editProduct.id);
@@ -91,7 +91,8 @@ export default function ProductsPage() {
 
   // Atualiza o stock de um produto diretamente na tabela sem abrir o modal completo
   async function updateStock(id: string, qty: string) {
-    await supabase.from("products").update({ stock_quantity: Number(qty) }).eq("id", id);
+    const value = Math.max(0, Number(qty));
+    await supabase.from("products").update({ stock_quantity: value }).eq("id", id);
     setStockEdit(null);
     load();
   }
@@ -130,13 +131,13 @@ export default function ProductsPage() {
                   <div style={{ fontSize: 12, color: "#888" }}>{p.unit}</div>
                 </div>
               </div>
-              <span style={{ whiteSpace: "nowrap" }}>{p.category?.name}</span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.category?.name}</span>
               <span style={{ whiteSpace: "nowrap" }}>€{Number(p.price_per_unit).toFixed(2)}</span>
               {/* Célula de stock: clique para editar inline, botões para confirmar/cancelar */}
               <div>
                 {stockEdit?.id === p.id ? (
                   <div style={{ display: "flex", gap: 4 }}>
-                    <input style={s.stockInput} type="number" value={stockEdit?.value} onChange={(e) => setStockEdit({ id: p.id, value: e.target.value })} />
+                    <input style={s.stockInput} type="number" min="0" value={stockEdit?.value} onChange={(e) => setStockEdit({ id: p.id, value: e.target.value })} />
                     <button style={s.saveBtn} onClick={() => updateStock(p.id, stockEdit?.value ?? "0")}>✓</button>
                     <button style={s.cancelBtnSm} onClick={() => setStockEdit(null)}>✕</button>
                   </div>
@@ -187,8 +188,8 @@ export default function ProductsPage() {
               </select>
             </label>
             <label style={s.label}>Preço por unidade (€) *<input style={s.input} type="number" placeholder="0.00" value={form.price_per_unit} onChange={(e) => setField("price_per_unit", e.target.value)} /></label>
-            <label style={s.label}>Stock disponível<input style={s.input} type="number" placeholder="0" value={form.stock_quantity} onChange={(e) => setField("stock_quantity", e.target.value)} /></label>
-            <label style={s.label}>Quantidade mínima de encomenda<input style={s.input} type="number" placeholder="1" value={form.min_order_quantity} onChange={(e) => setField("min_order_quantity", e.target.value)} /></label>
+            <label style={s.label}>Stock disponível<input style={s.input} type="number" min="0" placeholder="0" value={form.stock_quantity} onChange={(e) => setField("stock_quantity", e.target.value)} /></label>
+            <label style={s.label}>Quantidade mínima de encomenda<input style={s.input} type="number" min="1" placeholder="1" value={form.min_order_quantity} onChange={(e) => setField("min_order_quantity", e.target.value)} /></label>
             {saveError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>{saveError}</p>}
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               <button style={s.addBtn} onClick={save}>Guardar</button>
@@ -208,10 +209,10 @@ const s: Record<string, React.CSSProperties> = {
   catBtn: { background: "#fff", color: "#2d6a4f", border: "1px solid #2d6a4f", padding: "10px 20px", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 14 },
   catBar: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
   catChip: { background: "#e8f5e9", color: "#2d6a4f", padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600 },
-  tableWrap: { borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" },
-  table: { background: "#fff", borderRadius: 12, overflow: "hidden", minWidth: 640 },
-  thead: { display: "grid", gridTemplateColumns: "2fr 1fr 100px 140px 100px 100px", gap: 12, padding: "12px 16px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 13 },
-  trow: { display: "grid", gridTemplateColumns: "2fr 1fr 100px 140px 100px 100px", gap: 12, padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 14, alignItems: "center" },
+  tableWrap: { borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflowX: "auto" },
+  table: { background: "#fff", borderRadius: 12, overflow: "hidden", minWidth: 680 },
+  thead: { display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) 100px 140px 90px 90px", gap: 12, padding: "12px 16px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 13, alignItems: "center" },
+  trow: { display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) 100px 140px 90px 90px", gap: 12, padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 14, alignItems: "center" },
   stockInput: { width: 70, border: "1px solid #ccc", borderRadius: 6, padding: "4px 8px" },
   saveBtn: { background: "#22c55e", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" },
   cancelBtnSm: { background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" },

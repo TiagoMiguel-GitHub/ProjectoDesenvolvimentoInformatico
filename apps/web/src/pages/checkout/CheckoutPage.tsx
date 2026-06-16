@@ -41,7 +41,7 @@ function formatSlotDate(dateStr: string): string {
 }
 
 const PAYMENT_OPTIONS = [
-  { key: "cash_on_delivery", label: "💵 Pagamento na entrega" },
+  { key: "cash_on_delivery", label: "💵 Dinheiro" },
   { key: "mbway", label: "📱 MB Way" },
   { key: "multibanco", label: "🏧 Multibanco" },
 ];
@@ -157,23 +157,37 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* Grelha de horários disponíveis agrupados por data */}
+          {/* Horários disponíveis */}
           <div className="card p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-primary-500" /> Horário</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-primary-500" /> {fulfillment === "pickup" ? "Dia de levantamento" : "Horário"}</h2>
             {sortedDates.length === 0 ? (
               <p className="text-gray-400 text-sm">Sem horários disponíveis esta semana.</p>
-            ) : sortedDates.map((date) => (
-              <div key={date} className="mb-5">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{formatSlotDate(date)}</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {slotsByDate[date].map((slot) => (
-                    <button key={slot.id} onClick={() => setSelectedSlot(slot)} className={`p-3 rounded-xl border-2 text-sm font-semibold transition-all ${selectedSlot?.id === slot.id ? "border-primary-500 bg-primary-50 text-primary-700" : "border-gray-200 text-gray-600 hover:border-primary-300"}`}>
-                      {slot.start_time.slice(0,5)} – {slot.end_time.slice(0,5)}
+            ) : fulfillment === "pickup" ? (
+              <div className="space-y-2">
+                {sortedDates.map((date) => {
+                  const slot = slotsByDate[date][0];
+                  return (
+                    <button key={date} onClick={() => setSelectedSlot(slot)} className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedSlot?.slot_date === date ? "border-primary-500 bg-primary-50 text-primary-700" : "border-gray-200 text-gray-600 hover:border-primary-300"}`}>
+                      <p className="font-semibold">{formatSlotDate(date)}</p>
+                      <p className="text-sm mt-0.5 opacity-75">🏪 Aberto das {slot.start_time.slice(0,5)} às {slot.end_time.slice(0,5)}</p>
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            ))}
+            ) : (
+              sortedDates.map((date) => (
+                <div key={date} className="mb-5">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{formatSlotDate(date)}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {slotsByDate[date].map((slot) => (
+                      <button key={slot.id} onClick={() => setSelectedSlot(slot)} className={`p-3 rounded-xl border-2 text-sm font-semibold transition-all ${selectedSlot?.id === slot.id ? "border-primary-500 bg-primary-50 text-primary-700" : "border-gray-200 text-gray-600 hover:border-primary-300"}`}>
+                        {slot.start_time.slice(0,5)} – {slot.end_time.slice(0,5)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Método de pagamento */}

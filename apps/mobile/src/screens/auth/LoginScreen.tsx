@@ -23,7 +23,7 @@ export default function LoginScreen({ navigation, route }: any) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <Text style={styles.logo}>🌿 AgroWood</Text>
       <Text style={styles.title}>Entrar</Text>
 

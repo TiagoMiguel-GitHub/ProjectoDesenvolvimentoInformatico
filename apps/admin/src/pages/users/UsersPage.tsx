@@ -79,11 +79,11 @@ export default function UsersPage() {
           )}
           {filtered.map((u) => (
             <div key={u.id} style={s.trow}>
-              <div>
-                <div style={{ fontWeight: 600, color: "#222" }}>{u.full_name || "—"}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: "#222", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.full_name || "—"}</div>
               </div>
-              <span style={{ fontSize: 13, color: "#555" }}>{u.email || "—"}</span>
-              <span style={{ fontSize: 13, color: "#555" }}>{u.phone || "—"}</span>
+              <span style={{ fontSize: 13, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{u.email || "—"}</span>
+              <span style={{ fontSize: 13, color: "#555", whiteSpace: "nowrap" }}>{u.phone || "—"}</span>
               <span style={{
                 background: u.role === "admin" ? "#e8f5e9" : "#f0f0f0",
                 color: u.role === "admin" ? "#2d6a4f" : "#555",
@@ -129,10 +129,10 @@ const s: Record<string, React.CSSProperties> = {
   stats: { display: "flex", gap: 12 },
   stat: { background: "#e8f5e9", color: "#2d6a4f", padding: "4px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600 },
   search: { width: "100%", padding: "10px 14px", border: "1px solid #ccc", borderRadius: 8, fontSize: 14, marginBottom: 16, boxSizing: "border-box" },
-  tableWrap: { borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" },
-  table: { background: "#fff", borderRadius: 12, overflow: "hidden" },
-  thead: { display: "grid", gridTemplateColumns: "1.5fr 2fr 110px 85px 75px 95px 230px", gap: 8, padding: "10px 12px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 12 },
-  trow: { display: "grid", gridTemplateColumns: "1.5fr 2fr 110px 85px 75px 95px 230px", gap: 8, padding: "10px 12px", borderTop: "1px solid #f0f0f0", fontSize: 13, alignItems: "center" },
+  tableWrap: { borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflowX: "auto" },
+  table: { background: "#fff", borderRadius: 12, overflow: "hidden", minWidth: 780 },
+  thead: { display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,2fr) 110px 85px 75px 95px 230px", gap: 8, padding: "10px 12px", background: "#f8f8f8", fontWeight: 600, color: "#555", fontSize: 12, alignItems: "center" },
+  trow: { display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,2fr) 110px 85px 75px 95px 230px", gap: 8, padding: "10px 12px", borderTop: "1px solid #f0f0f0", fontSize: 13, alignItems: "center" },
   roleBtn: { background: "#e8f0fe", color: "#1a56db", border: "none", padding: "4px 7px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" },
   activeBtn: { border: "none", padding: "4px 7px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" },
   deleteBtn: { background: "#fee2e2", color: "#dc2626", border: "none", padding: "4px 7px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" },
